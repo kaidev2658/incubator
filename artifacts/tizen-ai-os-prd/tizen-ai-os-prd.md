@@ -56,6 +56,63 @@ Telemetry는 agent success/failure, tool latency, heartbeats per minute을 로�
 * **Memory Backend**: SQLite/embedded DB + embedding vectors per profile. Sync to secure cloud with hashed keys.
 * **Communication Layers**: Local overlay(WebLayer), remote AI (Anthropic/Gemini via secure microservice), developer CLI (`taoctl`).
 
+
+## 5.1 System Architecture Diagram
+```mermaid
+graph TD
+  Input[Input Sources (리모컨·음성·모바일·IoT 센서)] --> AgentRuntime[tizen-ai-agentd Agent Runtime]
+  AgentRuntime --> ToolRegistry[Tool Registry (Manifest + Scheduler)]
+  ToolRegistry --> ToolLocal[로컬 Tool (Overlay·Device Control 등)]
+  ToolRegistry --> ToolCloud[클라우드 Tool (Anthropic/Gemini)]
+  ToolLocal --> MemoryStore[Memory & Context Store]
+  ToolCloud --> MemoryStore
+  MemoryStore --> Overlay[Overlay / WebLayer]
+  MemoryStore --> Telemetry[Telemetry & Watchdog]
+  Telemetry --> Security[Security Manager & Privilege]
+  AgentRuntime --> Overlay
+  AgentRuntime --> Security
+  ToolCloud --> Cloud[Cloud Services (LLM, Search, Logging)]
+  Cloud --> AgentRuntime
+```
+**설명:** 이 다이어그램은 입력 → 에이전트 → 툴 → 메모리/오버레이 → 텔레메트리 흐름을 보여줍니다. Agent Runtime은 heartbeat로 동작하며, Tool Registry가 로컬/클라우드 조합을 선택한 뒤 메모리에 결과를 기록합니다. Overlay와 Telemetry는 실시간 피드백을 제공하고 Security Manager가 모든 호출을 감시하여 Tizen privilege 정책을 적용합니다.
+
+### 시스템의 핵심 키 피쳐
+* **Heartbeat-driven orchestration** – Agent Runtime이 각 agent를 predictable한 간격으로 트리거하고, 실패 시 fallback heartbeat를 재실행합니다.
+* **Tool manifest 기반 routing** – JSON metadata로 tool을 선언하여 local/cloud mix를 점검하고 rate limit/timeout을 적용합니다.
+* **Memory + telemetry feedback** – 로컬 SQLite embedding store를 agent가 공유하고 Telemetry 엔진이 latency/success/failure를 기록하여 관리자와 watchdog이 관찰합니다.
+* **Security-first integration** – Tizen Security Manager에 연결된 privilege profile로 action마다 권한을 확인하고, prompt injection 시 admin confirmation을 요구합니다.
+
+## 5.2 Component Diagram
+```mermaid
+flowchart LR
+  Runtime[tizen-ai-agentd Agent Scheduler]
+  ToolReg[Tool Registry + Manifest]
+  ToolLocal[Local Tools (Overlay·Device Control)]
+  ToolCloud[Cloud Tools (LLM, Search)]
+  MemoryStore[Memory & Context Store]
+  Telemetry[Telemetry + Watchdog]
+  Overlay[Local UI Overlay / WebLayer]
+  Security[Security Manager & Privilege Gate]
+  Cloud[Cloud AI Services]
+  Runtime --> ToolReg
+  ToolReg --> ToolLocal
+  ToolReg --> ToolCloud
+  ToolLocal --> MemoryStore
+  ToolCloud --> MemoryStore
+  MemoryStore --> Overlay
+  MemoryStore --> Telemetry
+  Telemetry --> Security
+  Runtime --> Overlay
+  Runtime --> Security
+  Cloud --> ToolCloud
+```
+*Key components*
+1. **Agent Runtime (tizen-ai-agentd)** – Heartbeat 기반 scheduler로, context에 따라 multi-step tool planner를 호출합니다.
+2. **Tool Registry** – 모든 tool 메타를 보관하는 서비스. 각 manifest에는 `inputs`, `outputs`, `security`, `heartbeat`, `timeout`이 정의됩니다.
+3. **Local & Cloud Tools** – Local은 Tizen Service API를 감싸고, Cloud는 LLM/search inference나 telemetry storage를 담당합니다.
+4. **Memory & Telemetry Stack** – Vector embeddings/short-term context 저장소와 telemetry collector가 agent logs, tool latency, action outcome을 환경에 전달합니다.
+5. **Overlay & Security Plane** – WebLayer 기반 응답 UI와 Tizen OS 보안 매니저가 action consent, opt-in 설정, audit trail을 관리합니다.
+6. **Cloud AI Services** – Anthropic/Gemini 등 외부 모델은 `ToolCloud`를 통해 호출되며, rate limit policy와 encryption transport를 따릅니다.
 ## 6. Implementation Roadmap
 1. **Phase 0 – Foundation (1m)**: Heartbeat scheduler, agent scaffold, logging, overlay prototype.
 2. **Phase 1 – Skill Parity (2m)**: OpenClaw tools 포팅(Input, Content Search, Device Control), memory store + tool registry, security gating.
