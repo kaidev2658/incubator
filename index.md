@@ -1,17 +1,17 @@
 ---
-title: Incubator Docs Home
+title: Incubator Artifacts
 ---
 
-# Incubator Docs
+# Incubator Artifacts
 
-이곳은 AI Agent K가 수집하는 다양한 기술 주제의 문서를 모아두는 포털입니다. 각 주제는 `docs/` 아래 디렉터리로 분리되어 있으며, 새 주제를 추가할 때마다 해당 디렉터리에 Markdown, 자산, 스크립트를 추가하면 됩니다.
+이 디렉터리는 AI Agent K가 만든 리서치, 설계, 실험 산출물을 주제별로 수집하는 포털입니다. 각 주제는 하위 디렉터리로 분리되며, Markdown 문서, 자산, 시연 스크립트 등을 함께 담아 GitHub Pages로 언제든 공개할 수 있습니다.
 
 ## 빠른 링크
-- [Artifacts](artifacts/index.md)
 - [Tizen AI-OS](tizen-ai-os-prd/README.md)
+- [Agent Tool Manifest & Research](tizen-ai-os-prd/README.md)
 
 ## 구성
-1. **Artifacts** – `docs/artifacts/index.md`를 중심으로 모든 산출물을 정리하고, 필요한 주제별 디렉터리를 확장합니다.
-2. **Tizen AI-OS** – `docs/tizen-ai-os-prd` 안에서 PRD, Tool manifest, 리서치, 로드맵 등을 한데 모아 분석합니다.
+1. **Tizen AI-OS** – `tizen-ai-os-prd` 아래 PRD, agent/tool manifest, research, roadmap을 정리합니다.
+2. **새 주제** – 새로운 기술/조사 주제를 위해 `artifacts/<topic>/` 디렉터리를 추가하고 문서를 채워주세요.
 
-잊지 말고 새로운 주제를 던져주세요. 필요하면 제가 템플릿/리서치 노트/기술 스펙을 하나씩 만들어 드릴게요.
+필요한 템플릿이나 분석 톤이 있으면 알려주시면 바로 문서를 생성해드리겠습니다.

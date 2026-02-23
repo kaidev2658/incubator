@@ -8,5 +8,5 @@
 
 ## 기록 방법
 1. Markdown으로 조사 항목 정리.
-2. `docs/research/YYYY-MM-DD-[topic].md` 형식으로 파일 생성.
-3. 요약은 `docs/index.md`와 GitHub Pages에 자동 노출.
+2. `artifacts/tizen-ai-os-prd/research/YYYY-MM-DD-[topic].md` 형식으로 파일 생성.
+3. 요약은 `artifacts/index.md`와 GitHub Pages에 자동 노출.
