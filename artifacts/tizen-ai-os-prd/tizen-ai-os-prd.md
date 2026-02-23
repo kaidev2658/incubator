@@ -5,6 +5,29 @@
 * **목표**: 에이전트가 TV(리모컨·음성·캔버스·IoT 기기 포함) 전반을 감지하고 조치하며, Tizen의 시스템 서비스/권한 구조에서 자체 에이전트를 실행하는 **AI-OS**를 구현합니다.
 * **참고**: OpenClaw PRD와 Claude Cowork(멀티툴 워크플로 + skill/heartbeat)에 기반해 native 영역에 맞춘 agent framework를 설계합니다.
 
+## 1.1 Context & Problem Framing
+
+* **입력 환경**: 리모컨, 음성, 모바일 앱, IoT 센서 등 다중 모달 입력이 혼재하며 SoC 성능과 전력 예산이 타이트합니다.
+* **제약 사항**: Tizen TV에는 권한/보안 정책이 다양하고 OTA 업데이트 주기와 리소스 제한 때문에 거대한 런타임을 올릴 수 없습니다.
+* **기회**: 하지만 TV는 거실 중심 허브에 들어앉은 사용자의 시청/홈 자동화 데이터를 모아두고, 이를 agent가 유연한 workflow로 분해·실행하면 차별화된 UX/브랜드 경험을 만들 수 있습니다.
+* **경쟁 대비**: Apple Vision Pro나 Google TV가 제공하는 ‘공간적 에이전시’와 달리, Tizen AI-OS는 리모컨/음성/IoT 경계에서의 현실적 도구 통합과 로컬-클라우드 하이브리드 보안을 핵심 차별점으로 삼습니다.
+
+이러한 컨텍스트에서 AI-OS는 ‘에이전트 네트워크 + tool manifest + memory service’의 조합으로 시장에서 검증된 워크플로를 Tizen에 접목하는 것이 핵심 방향입니다.
+
+## 1.2 Architecture Blueprint
+
+### 핵심 레이어
+1. **Agent Runtime (tizen-ai-agentd)** - heartbeat scheduler가 agent를 주기적으로 트리거하고, 각 agent는 tool manifest에 따라 필요한 tool chain을 호출합니다. TV system service(Privilege Manager, Security Manager)와 tight 통합하여 허가된 액세스만 실행합니다.
+2. **Tool Registry Layer** - JSON manifest로 정의된 tool마다 `type`, `inputs`, `outputs`, `security`를 명시하고, `heartbeat`/`quota`를 트래킹합니다. 로컬 tool은 Tizen service API(Overlay, Device Control)를 감싼 wrapper이고, cloud tool은 Anthropic/Gemini 기반 inference + search를 포함합니다.
+3. **Memory + Context Layer** - 사용자 프리퍼런스/최근 시청 로그를 SQLite+vector embedding store에 담고, encryption keys는 Tizen Vault에 보관합니다. short-term context는 crontab-like heartbeat snapshots에 의해 GOP 단위로 갱신됩니다.
+4. **Communication & Control Plane** - local overlay(WebLayer) -> agent -> tool 결과 -> overlay response로 이어지는 피드백 루프. 클라우드 모델 호출 시에는 transport layer security + rate limiting을 적용하고, `taoctl` CLI로 개발자 디버그가 가능합니다.
+
+### 데이터/제어 흐름
+``
+[Input event] -> [tizen-ai-agentd heartbeat] -> [Agent planner (tool graph)] -> [Tool execution (local/cloud)] -> [Memory store update + telemetry log] -> [Overlay/UI response]
+``
+Telemetry는 agent success/failure, tool latency, heartbeats per minute을 로깅해 Tizen watchdog과 연동합니다. Prompt injection/_fallback policy는 tool 단계마다 `security` 메타에서 체크하며, 실패 시 사용자 확인(prompt)과 관리자 audit 로그를 동시에 만듭니다.
+
 ## 2. 비전 & Success Criteria
 | 항목 | 목표 |
 | --- | --- |
