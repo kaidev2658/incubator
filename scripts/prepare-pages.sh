@@ -1,3 +1,3 @@
 #!/bin/bash
 set -euo pipefail
-rsync -a --delete docs/ pages-latest/
+rsync -a --delete artifacts/ pages-latest/

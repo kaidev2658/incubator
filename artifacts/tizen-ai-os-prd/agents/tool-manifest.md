@@ -19,4 +19,4 @@ OpenClaw/Claude 스타일 agent가 Tizen native 서비스와 상호작용하기 
 
 ### 운영 방침
 * 모든 tool은 manifest 등록 + security gating 후 `tizen-ai-agentd` scheduler에 노출.
-* heartbeats에서 사용량 추적 → `docs/assets/tool-usage.csv` 에 기록하여 성능/지연 분석.
+* heartbeats에서 사용량 추적 → `artifacts/assets/tool-usage.csv`에 기록하여 성능/지연 분석.

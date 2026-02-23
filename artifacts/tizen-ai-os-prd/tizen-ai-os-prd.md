@@ -46,6 +46,6 @@
 * **신뢰성**: 잘못된 스마트 조치. → action confirmation, audit logs, revert tool, admin override.
 
 ## 8. 다음 단계
-* Tool manifest + Tizen service API contract 정의 (`docs/agents/tool-manifest.md`).
+* Tool manifest + Tizen service API contract 정의 (`artifacts/tizen-ai-os-prd/agents/tool-manifest.md`).
 * GitHub Pages로 PRD/연구 문서 공개, 파트너 피드백 루프.
-* PoC agent module 빌드 → `docs/research`에 결과 수집.
+* PoC agent module 빌드 → `artifacts/tizen-ai-os-prd/research`에 결과 수집.
