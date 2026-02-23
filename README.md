@@ -8,6 +8,8 @@
 - `.github/workflows/pages.yml`: `artifacts/` 기반 공개 사이트를 `gh-pages` 브랜치로 배포합니다.
 
 ## 운영 플로우
+또한 매일 오전 6시(UTC+9) `dailiy/` 아래에 자동으로 RSS 인사이트 파일을 생성하는 스케줄링을 설정해두었습니다. 해당 작업은 GitHub Actions와 RSS 파싱 스크립트로 수행되며, 생성된 파일은 커밋/푸시 후 텔레그램 리포트(수동 전송)로 공유하시면 됩니다.
+
 1. `artifacts/` 아래에 주제별 디렉터리를 생성하고 Markdown/자산을 추가합니다.
 2. `main` 브랜치에 커밋 → GitHub Actions가 `gh-pages`로 배포.
 3. 결과 사이트는 [https://kaidev2658.github.io/incubator](https://kaidev2658.github.io/incubator)에서 확인합니다.
