@@ -85,15 +85,15 @@ graph TD
 ## 5.2 Component Diagram
 ```mermaid
 flowchart LR
-  Runtime[tizen-ai-agentd Agent Scheduler]
-  ToolReg[Tool Registry + Manifest]
-  ToolLocal[Local Tools (Overlay·Device Control)]
-  ToolCloud[Cloud Tools (LLM, Search)]
-  MemoryStore[Memory & Context Store]
-  Telemetry[Telemetry + Watchdog]
-  Overlay[Local UI Overlay / WebLayer]
-  Security[Security Manager & Privilege Gate]
-  Cloud[Cloud AI Services]
+  Runtime["tizen-ai-agentd Agent Scheduler"]
+  ToolReg["Tool Registry + Manifest"]
+  ToolLocal["Local Tools Overlay Device Control"]
+  ToolCloud["Cloud Tools LLM Search"]
+  MemoryStore["Memory & Context Store"]
+  Telemetry["Telemetry + Watchdog"]
+  Overlay["Local UI Overlay WebLayer"]
+  Security["Security Manager & Privilege Gate"]
+  Cloud["Cloud AI Services"]
   Runtime --> ToolReg
   ToolReg --> ToolLocal
   ToolReg --> ToolCloud
