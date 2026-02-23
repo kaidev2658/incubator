@@ -24,3 +24,4 @@ jobs:
           publish_dir: ./pages
           publish_branch: gh-pages
           github_token: ${{ secrets.GITHUB_TOKEN }}
+          disable_nojekyll: true
