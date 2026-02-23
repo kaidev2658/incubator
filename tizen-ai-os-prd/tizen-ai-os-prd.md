@@ -60,18 +60,18 @@ Telemetry는 agent success/failure, tool latency, heartbeats per minute을 로�
 ## 5.1 System Architecture Diagram
 ```mermaid
 graph TD
-  Input[Input Sources (리모컨·음성·모바일·IoT 센서)] --> AgentRuntime[tizen-ai-agentd Agent Runtime]
-  AgentRuntime --> ToolRegistry[Tool Registry (Manifest + Scheduler)]
-  ToolRegistry --> ToolLocal[로컬 Tool (Overlay·Device Control 등)]
-  ToolRegistry --> ToolCloud[클라우드 Tool (Anthropic/Gemini)]
-  ToolLocal --> MemoryStore[Memory & Context Store]
+  Input["Input Sources (리모컨·음성·모바일·IoT 센서)"] --> AgentRuntime["tizen-ai-agentd Agent Runtime"]
+  AgentRuntime --> ToolRegistry["Tool Registry (Manifest + Scheduler)"]
+  ToolRegistry --> ToolLocal["Local Tool (Overlay/Device Control)"]
+  ToolRegistry --> ToolCloud["Cloud Tool (Anthropic/Gemini)"]
+  ToolLocal --> MemoryStore["Memory & Context Store"]
   ToolCloud --> MemoryStore
-  MemoryStore --> Overlay[Overlay / WebLayer]
-  MemoryStore --> Telemetry[Telemetry & Watchdog]
-  Telemetry --> Security[Security Manager & Privilege]
+  MemoryStore --> Overlay["Overlay / WebLayer"]
+  MemoryStore --> Telemetry["Telemetry & Watchdog"]
+  Telemetry --> Security["Security Manager & Privilege"]
   AgentRuntime --> Overlay
   AgentRuntime --> Security
-  ToolCloud --> Cloud[Cloud Services (LLM, Search, Logging)]
+  ToolCloud --> Cloud["Cloud Services (LLM, Search, Logging)"]
   Cloud --> AgentRuntime
 ```
 **설명:** 이 다이어그램은 입력 → 에이전트 → 툴 → 메모리/오버레이 → 텔레메트리 흐름을 보여줍니다. Agent Runtime은 heartbeat로 동작하며, Tool Registry가 로컬/클라우드 조합을 선택한 뒤 메모리에 결과를 기록합니다. Overlay와 Telemetry는 실시간 피드백을 제공하고 Security Manager가 모든 호출을 감시하여 Tizen privilege 정책을 적용합니다.
