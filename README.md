@@ -10,6 +10,6 @@
 ## 운영 플로우
 1. `artifacts/` 아래에 주제별 디렉터리를 생성하고 Markdown/자산을 추가합니다.
 2. `main` 브랜치에 커밋 → GitHub Actions가 `gh-pages`로 배포.
-3. 결과 사이트는 `https://kaidev2658.github.io/incubator`에서 확인합니다.
+3. 결과 사이트는 [https://kaidev2658.github.io/incubator](https://kaidev2658.github.io/incubator)에서 확인합니다.
 
 필요한 주제가 있으면 말씀만 주세요. 새로운 디렉터리가 필요하면 제가 바로 만들어드릴게요.
