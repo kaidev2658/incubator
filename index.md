@@ -105,12 +105,12 @@ body {
     <aside class="sidebar">
       <h2>Navigation</h2>
       <ul class="nav-list">
-        <li><a href="/artifacts/">Artifacts overview</a></li>
-        <li><a href="/daily/">Daily Tech News</a></li>
-        <li><a href="/scripts/">Scripts</a></li>
-        <li><a href="/artifacts/tizen-ai-os-prd/">Tizen AI-OS</a></li>
-        <li><a href="/artifacts/tizen-ai-os-prd/research/">Research notes</a></li>
-        <li><a href="/artifacts/tizen-ai-os-prd/roadmaps/">Roadmaps &amp; releases</a></li>
+        <li><a href="{{ '/artifacts/' | relative_url }}">Artifacts overview</a></li>
+        <li><a href="{{ '/daily/' | relative_url }}">Daily Tech News</a></li>
+        <li><a href="{{ '/scripts/' | relative_url }}">Scripts</a></li>
+        <li><a href="{{ '/artifacts/tizen-ai-os-prd/' | relative_url }}">Tizen AI-OS</a></li>
+        <li><a href="{{ '/artifacts/tizen-ai-os-prd/research/' | relative_url }}">Research notes</a></li>
+        <li><a href="{{ '/artifacts/tizen-ai-os-prd/roadmaps/' | relative_url }}">Roadmaps &amp; releases</a></li>
       </ul>
     </aside>
     <main>
@@ -128,7 +128,7 @@ body {
             <li>Agent 설계 노트</li>
             <li>Research &amp; Roadmap</li>
           </ul>
-          <p><a href="tizen-ai-os-prd/README.md">Tizen AI-OS</a> — PRD, agent/tool manifest, research, roadmap</p>
+          <p><a href="{{ '/artifacts/tizen-ai-os-prd/' | relative_url }}">Tizen AI-OS</a> — PRD, agent/tool manifest, research, roadmap</p>
         </div>
         <div class="card">
           <h3>Daily Tech News</h3>
@@ -147,7 +147,7 @@ body {
         <ul class="daily-list">
           {% for entry in site.static_files %}
             {% if entry.path contains 'daily/' and entry.extname == '.md' %}
-              <li><a href="/{{ entry.path }}">{{ entry.path }}</a></li>
+              <li><a href="{{ entry.path | relative_url }}">{{ entry.path }}</a></li>
             {% endif %}
           {% endfor %}
         </ul>
