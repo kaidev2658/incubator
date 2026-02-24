@@ -9,19 +9,26 @@ permissions:
   pages: write
 
 jobs:
-  deploy:
+  build:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      - name: Prepare artifacts tree
+        with:
+          fetch-depth: 0
+      - name: Prepare pages output
         run: |
-          mkdir -p pages
-          cp -R artifacts/. pages
+          rm -rf site
+          mkdir -p site
+          rsync -a artifacts/ site/artifacts/
+          if [ -d daily ]; then
+            rsync -a daily/ site/daily/
+          fi
+          cp -R README.md site/README.md
       - name: Deploy to gh-pages
         uses: peaceiris/actions-gh-pages@v4
         with:
-          publish_dir: ./pages
+          publish_dir: ./site
           publish_branch: gh-pages
           github_token: ${{ secrets.GITHUB_TOKEN }}
           disable_nojekyll: true
