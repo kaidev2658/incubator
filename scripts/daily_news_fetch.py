@@ -11,7 +11,7 @@ import xml.etree.ElementTree as ET
 from datetime import datetime, timedelta, timezone
 from email.utils import parsedate_to_datetime
 from pathlib import Path
-from typing import Iterable, List, Optional
+from typing import Iterable, List, Optional, Sequence
 
 DEFAULT_FEEDS: List[str] = [
     "https://feeds.feedburner.com/geeknews-feed",
@@ -71,49 +71,67 @@ def fetch_feed(url: str) -> Optional[bytes]:
         return None
 
 
-def parse_published_text(elem: ET.Element) -> Optional[datetime]:
-    for tag in ("pubDate", "published", "updated"):
-        child = elem.find(tag)
-        text = (child.text or "").strip()
-        if not text:
-            continue
-        try:
-            return parsedate_to_datetime(text).astimezone(timezone.utc)
-        except (TypeError, ValueError):
-            continue
+def localname(tag: str) -> str:
+    if not tag:
+        return ""
+    return tag.split("}", 1)[-1]
+
+
+def child_text(elem: ET.Element, names: Sequence[str]) -> Optional[str]:
+    for child in elem:
+        if localname(child.tag) in names and child.text:
+            return child.text.strip()
     return None
 
 
+def parse_published_text(elem: ET.Element) -> Optional[datetime]:
+    text = child_text(elem, ("pubDate", "published", "updated"))
+    if not text:
+        return None
+    try:
+        dt = parsedate_to_datetime(text)
+    except (TypeError, ValueError):
+        try:
+            dt = datetime.fromisoformat(text)
+        except ValueError:
+            return None
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    return dt.astimezone(timezone.utc)
+
+
 def entry_summary(elem: ET.Element) -> str:
-    for tag in ("description", "summary", "content", "content:encoded"):
-        child = elem.find(tag)
-        if child is not None and child.text:
-            return child.text.strip()
-    return ""
+    text = child_text(elem, ("description", "summary", "content", "encoded"))
+    return text or ""
 
 
 def entry_link(elem: ET.Element) -> Optional[str]:
-    link_child = elem.find("link")
-    if link_child is not None and link_child.text:
-        return link_child.text.strip()
-    # Atom entries can have href attribute
-    for child in elem.findall("link"):
+    for child in elem:
+        if localname(child.tag) != "link":
+            continue
+        text = (child.text or "").strip()
+        if text:
+            return text
         href = child.attrib.get("href")
         if href:
             return href.strip()
     return None
 
 
+def elements_by_localname(root: ET.Element, names: Sequence[str]) -> List[ET.Element]:
+    matches: List[ET.Element] = []
+    for elem in root.iter():
+        if localname(elem.tag) in names:
+            matches.append(elem)
+    return matches
+
+
 def parse_entries(xml_bytes: bytes, source: str) -> Iterable[dict]:
     root = ET.fromstring(xml_bytes)
-    channel = root.find("channel")
-    item_nodes = []
-    if channel is not None:
-        item_nodes.extend(channel.findall("item"))
-    item_nodes.extend(root.findall("entry"))
+    item_nodes = elements_by_localname(root, ("item", "entry"))
 
     for item in item_nodes:
-        title = (item.findtext("title") or "").strip()
+        title = (child_text(item, ("title",)) or "").strip()
         if not title or title.startswith(IGNORED_PREFIXES):
             continue
         link = entry_link(item)
