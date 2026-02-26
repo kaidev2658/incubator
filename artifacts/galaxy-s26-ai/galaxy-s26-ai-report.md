@@ -41,10 +41,21 @@
 - **Gemini 작업 자동화 추적:** DoorDash 중심 배포가 한국/美 베타에서 시작되었으므로, 새로운 앱/지역이 추가되는 시점을 로깅해서 대응 계획에 반영.
 - **산출물 갱신:** artifacts/galaxy-s26-ai 디렉터리에서 관련 문서(기술 노트, 레퍼런스 링크, 정책 정리)를 계속 누적하고, 필요하면 Notion/로그와 링크 연결.
 
-## 5. 참고 링크
+## 6. 2026년 Galaxy Unpacked 핵심 메모
+- Galaxy AI, Bixby, Google Gemini, Perplexity 네 가지 AI를 한 무대에 올리며 "AI폰" 정체성을 강조했고, 이들 모두가 사진, 통화, 브라우징, 설정 질문 등 실시간 경험 개선에 집중했다고 TechRadar가 보도했습니다.
+- Galaxy AI는 촬영 장면을 텍스트/음성으로 재구성하거나 통화를 대신 받아 요약을 띄우며, Perplexity 통합 브라우저와 Bixby의 설정 안내까지 모두 "effortless"한 AI 경험으로 묶었습니다.
+- Galaxy S26은 신형 Buds/Watch와 함께 출시되었고, Now Nudge 등으로 사용자의 상황을 능동적으로 리마인드하는 UI를 추가하면서 AI/UX 전략을 하드웨어 전반으로 푸시하는 것이 핵심 방향이었습니다.
+
+## 7. Android AI 최신 동향 (2월 말)
+- Gemini는 Galaxy S26·Pixel 10에서 DoorDash 등 특정 서드파티 앱의 주문·예약을 백그라운드로 실행하고, S Finder와 Now Nudge 알림을 통해 작업 상태를 자연어로 요약하며 사용자를 가이딩합니다.
+- Samsung의 Galaxy AI 유틸리티(스크린샷 분석, semantic search, Creative Studio 스티커/배경 생성)는 Android 플랫폼이 점점 AI 기반 경험으로 재편되는 대표 사례입니다.
+- Google Flow creative studio가 Nano Banana/Whisk/ImageFX 요소를 통합한 새 UI를 내놓고, 에셋 그리드·에디팅 툴 강화·Veo 3.1 Ingredients to Video 등으로 이미지를 중심으로 영상·스토리 창작을 통합하고 있습니다.
+
+## 8. 참고 링크
 1. TechRadar — Samsung Galaxy Unpacked 2026 라이브 피드 (AI 섹션): https://www.techradar.com/news/live/samsung-galaxy-unpacked-s26
 2. Android Authority — Gemini on Galaxy S26 and Pixel 10 can finally control other apps: https://www.androidauthority.com/gemini-galaxy-s26-pixel-10-control-other-apps-3643939/
 3. Android Authority — Screenshot Analyzer keeps Galaxy S26 screenshots sorted and ready: https://www.androidauthority.com/samsung-galaxy-s26-screenshot-analyzer-3643057/
 4. Android Authority — S Finder semantic search + Creative Studio, Now Nudge updates: https://www.androidauthority.com/samsung-galaxy-s26-finder-search-3643265/ and https://www.androidauthority.com/samsung-galaxy-s26-creative-studio-3643315/
+5. Android Authority — Google Flow redesigns Nano Banana experience: https://www.androidauthority.com/google-flow-nano-banana-redesign-3644398/
 
 *작성자: K*
