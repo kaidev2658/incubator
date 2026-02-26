@@ -50,6 +50,8 @@
 - Gemini는 Galaxy S26·Pixel 10에서 DoorDash 등 특정 서드파티 앱의 주문·예약을 백그라운드로 실행하고, S Finder와 Now Nudge 알림을 통해 작업 상태를 자연어로 요약하며 사용자를 가이딩합니다.
 - Samsung의 Galaxy AI 유틸리티(스크린샷 분석, semantic search, Creative Studio 스티커/배경 생성)는 Android 플랫폼이 점점 AI 기반 경험으로 재편되는 대표 사례입니다.
 - Google Flow creative studio가 Nano Banana/Whisk/ImageFX 요소를 통합한 새 UI를 내놓고, 에셋 그리드·에디팅 툴 강화·Veo 3.1 Ingredients to Video 등으로 이미지를 중심으로 영상·스토리 창작을 통합하고 있습니다.
+- Android Intelligent OS(매니페스트 긴 글)에서 AppFunctions를 통해 앱 기능을 자연어로 노출하고 Gemini가 Galaxy S26/Pixel10에서 Gallery 같은 앱을 직접 조작하여 사진을 불러오는 사례가 소개되었습니다. AppFunctions은 Jetpack 라이브러리/플랫폼 API와 함께 온디바이스에서 self-describing 함수를 선언하고 Gemini/agent가 로컬에서 실행할 수 있도록 하여 privacy-first 에이전트를 지원합니다.
+- UI 자동화 프레임워크도 Galaxy S26·Pixel10을 대상으로 beta로 론칭되었고, 파워 버튼 롱프레스 후 Gemini가 food delivery/grocery/rideshare 앱에서 다단계 주문을 자동화하도록 설계되었습니다. 사용자는 진행중인 작업을 알림·live view로 모니터링하고 중간에 수동 개입하거나 민감한 결제 전에는 확인을 받는 흐름으로 완성도를 유지합니다.
 
 ## 8. 참고 링크
 1. TechRadar — Samsung Galaxy Unpacked 2026 라이브 피드 (AI 섹션): https://www.techradar.com/news/live/samsung-galaxy-unpacked-s26
@@ -57,5 +59,6 @@
 3. Android Authority — Screenshot Analyzer keeps Galaxy S26 screenshots sorted and ready: https://www.androidauthority.com/samsung-galaxy-s26-screenshot-analyzer-3643057/
 4. Android Authority — S Finder semantic search + Creative Studio, Now Nudge updates: https://www.androidauthority.com/samsung-galaxy-s26-finder-search-3643265/ and https://www.androidauthority.com/samsung-galaxy-s26-creative-studio-3643315/
 5. Android Authority — Google Flow redesigns Nano Banana experience: https://www.androidauthority.com/google-flow-nano-banana-redesign-3644398/
+6. Android Developers Blog — The Intelligent OS: Making AI agents more helpful for Android apps: https://android-developers.googleblog.com/2026/02/the-intelligent-os-making-ai-agents.html?m=1
 
 *작성자: K*
