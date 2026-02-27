@@ -6,8 +6,10 @@ public interface ITransportAdapter
 {
     void AddChunk(string chunk);
     void AddMessage(NormalMessage message);
+    IReadOnlyList<GenerationEvent> Flush();
     IDisposable OnMessage(Action<NormalMessage> callback);
     IDisposable OnText(Action<string> callback);
+    IDisposable OnError(Action<ParseErrorEvent> callback);
 }
 
 public sealed class TransportAdapter : ITransportAdapter
@@ -15,6 +17,7 @@ public sealed class TransportAdapter : ITransportAdapter
     private readonly A2uiParser _parser;
     private readonly List<Action<NormalMessage>> _messageHandlers = [];
     private readonly List<Action<string>> _textHandlers = [];
+    private readonly List<Action<ParseErrorEvent>> _errorHandlers = [];
 
     public TransportAdapter(A2uiParser? parser = null) => _parser = parser ?? new A2uiParser();
 
@@ -29,6 +32,14 @@ public sealed class TransportAdapter : ITransportAdapter
         foreach (var handler in _messageHandlers) handler(message);
     }
 
+    public IReadOnlyList<GenerationEvent> Flush()
+    {
+        var events = _parser.Flush();
+        foreach (var evt in events)
+            Dispatch(evt);
+        return events;
+    }
+
     public IDisposable OnMessage(Action<NormalMessage> callback)
     {
         _messageHandlers.Add(callback);
@@ -41,6 +52,12 @@ public sealed class TransportAdapter : ITransportAdapter
         return new Subscription<Action<string>>(_textHandlers, callback);
     }
 
+    public IDisposable OnError(Action<ParseErrorEvent> callback)
+    {
+        _errorHandlers.Add(callback);
+        return new Subscription<Action<ParseErrorEvent>>(_errorHandlers, callback);
+    }
+
     private void Dispatch(GenerationEvent evt)
     {
         switch (evt)
@@ -50,6 +67,9 @@ public sealed class TransportAdapter : ITransportAdapter
                 break;
             case TextEvent t:
                 foreach (var h in _textHandlers) h(t.Text);
+                break;
+            case ParseErrorEvent e:
+                foreach (var h in _errorHandlers) h(e);
                 break;
         }
     }
