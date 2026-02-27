@@ -3,6 +3,8 @@
 A2UI 기술 및 구현 중심 분석 자료 모음.
 
 ## 파일 구성
+- `genui-deep-analysis-for-tizen-renderer.md` : GenUI 코드/문서 심층 분석 및 Tizen 적용 인사이트
+- `a2ui-spec-versions-and-changes.md` : A2UI 스펙 버전/변경사항 정리
 - `a2ui-architecture-deep-dive.md` : Mermaid 기반 아키텍처 심화 분석
 - `prd-a2ui-tizen-renderer.md` : A2UI Tizen Renderer 제품요구사항(PRD)
 - `a2ui-architecture-and-protocol.md` : A2UI 아키텍처/프로토콜 상세 분석
