@@ -1,3 +1,4 @@
+using Xunit;
 using TizenA2uiRenderer.Model;
 using TizenA2uiRenderer.Transport;
 
