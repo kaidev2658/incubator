@@ -3,6 +3,7 @@
 A2UI 기술 및 구현 중심 분석 자료 모음.
 
 ## 파일 구성
+- `a2ui-v0.9-to-v0.10-diff-analysis.md` : v0.9→v0.10 변경점/호환성/마이그레이션 분석
 - `genui-deep-analysis-for-tizen-renderer.md` : GenUI 코드/문서 심층 분석 및 Tizen 적용 인사이트
 - `a2ui-spec-versions-and-changes.md` : A2UI 스펙 버전/변경사항 정리
 - `a2ui-architecture-deep-dive.md` : Mermaid 기반 아키텍처 심화 분석
