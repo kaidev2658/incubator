@@ -4,7 +4,7 @@
 
 ## 1) 모듈 개요 및 책임
 
-### Parser (`/src/transport/a2ui_parser.ts`)
+### Parser (`/src/transport/a2ui_parser.cs`)
 **책임**
 - 스트리밍 입력에서 JSON 블록 추출
 - JSONL, Markdown code block, balanced JSON 지원
@@ -14,13 +14,16 @@
 - 입력: `string` chunk stream
 - 출력: `GenerationEvent` (`text` | `message`)
 
-```ts
-export type GenerationEvent = TextEvent | A2uiMessageEvent;
+```csharp
+public abstract record GenerationEvent;
+public sealed record TextEvent(string Text) : GenerationEvent;
+public sealed record A2uiMessageEvent(A2uiMessage Message) : GenerationEvent;
 
-export class A2uiParser {
-  constructor(opts?: ParserOptions);
-  addChunk(chunk: string): GenerationEvent[];
-  flush(): GenerationEvent[];
+public sealed class A2uiParser
+{
+    public A2uiParser(ParserOptions? options = null) { }
+    public IReadOnlyList<GenerationEvent> AddChunk(string chunk) => Array.Empty<GenerationEvent>();
+    public IReadOnlyList<GenerationEvent> Flush() => Array.Empty<GenerationEvent>();
 }
 ```
 
@@ -31,18 +34,19 @@ export class A2uiParser {
 
 ---
 
-### TransportAdapter (`/src/transport/transport_adapter.ts`)
+### TransportAdapter (`/src/transport/transport_adapter.cs`)
 **책임**
 - Parser 래핑
 - chunk/raw message 주입
 - 이벤트 구독 관리
 
-```ts
-export interface TransportAdapter {
-  addChunk(chunk: string): void;
-  addMessage(msg: A2uiMessage): void;
-  onMessage(cb: (msg: A2uiMessage) => void): Unsubscribe;
-  onText(cb: (text: string) => void): Unsubscribe;
+```csharp
+public interface ITransportAdapter
+{
+    void AddChunk(string chunk);
+    void AddMessage(A2uiMessage message);
+    IDisposable OnMessage(Action<A2uiMessage> callback);
+    IDisposable OnText(Action<string> callback);
 }
 ```
 
@@ -52,18 +56,19 @@ export interface TransportAdapter {
 
 ---
 
-### SurfaceController (`/src/controller/surface_controller.ts`)
+### SurfaceController (`/src/controller/surface_controller.cs`)
 **책임**
 - surface lifecycle 관리
 - data model update 처리
 - surface 생성 전 update 큐잉
 
-```ts
-export class SurfaceController {
-  constructor(opts: ControllerOptions);
-  handleMessage(msg: A2uiMessage): void;
-  onSurfaceUpdate(cb: (e: SurfaceUpdate) => void): Unsubscribe;
-  onError(cb: (e: A2uiError) => void): Unsubscribe;
+```csharp
+public sealed class SurfaceController
+{
+    public SurfaceController(ControllerOptions options) { }
+    public void HandleMessage(A2uiMessage message) { }
+    public IDisposable OnSurfaceUpdate(Action<SurfaceUpdate> callback) => Disposable.Empty;
+    public IDisposable OnError(Action<A2uiError> callback) => Disposable.Empty;
 }
 ```
 
@@ -78,16 +83,17 @@ export class SurfaceController {
 
 ---
 
-### RendererBridge (`/src/renderer/renderer_bridge.ts`)
+### RendererBridge (`/src/renderer/renderer_bridge.cs`)
 **책임**
 - SurfaceUpdate를 Tizen UI로 매핑
 - diff 기반 부분 렌더
 - render queue 스케줄링
 
-```ts
-export interface RendererBridge {
-  render(surfaceId: string, definition: SurfaceDefinition, dataModel: DataModel): void;
-  remove(surfaceId: string): void;
+```csharp
+public interface IRendererBridge
+{
+    void Render(string surfaceId, SurfaceDefinition definition, DataModel dataModel);
+    void Remove(string surfaceId);
 }
 ```
 
@@ -97,17 +103,18 @@ export interface RendererBridge {
 
 ---
 
-### StateStore (`/src/controller/state_store.ts`)
+### StateStore (`/src/controller/state_store.cs`)
 **책임**
 - surface별 snapshot/patch 적용
 - observer 기반 변경 통지
 
-```ts
-export class DataModel {
-  get(path: string): any;
-  set(path: string, value: any): void;
-  delete(path: string): void;
-  onChange(cb: (path: string) => void): Unsubscribe;
+```csharp
+public sealed class DataModel
+{
+    public object? Get(string path) => null;
+    public void Set(string path, object? value) { }
+    public void Delete(string path) { }
+    public IDisposable OnChange(Action<string> callback) => Disposable.Empty;
 }
 ```
 
@@ -126,7 +133,7 @@ tizen-a2ui-renderer/
 │  ├─ model/
 │  ├─ renderer/
 │  ├─ utils/
-│  └─ index.ts
+│  └─ Program.cs
 ├─ tests/
 │  ├─ unit/
 │  ├─ integration/

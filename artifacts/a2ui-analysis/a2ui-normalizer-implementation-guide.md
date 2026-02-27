@@ -4,19 +4,12 @@
 
 ## 1) NormalForm 정의
 
-```ts
-interface NormalMessage {
-  version: "v0.9" | "v0.10";
-  type:
-    | "CreateSurface"
-    | "UpdateComponents"
-    | "UpdateDataModel"
-    | "DeleteSurface"
-    | "CallFunction"
-    | "FunctionResponse"
-    | "Error";
-  surfaceId?: string;
-}
+```csharp
+public sealed record NormalMessage(
+    string Version,
+    NormalMessageType Type,
+    string? SurfaceId = null
+);
 ```
 
 ## 2) 변환 규칙표
@@ -53,20 +46,21 @@ Normalizer는 내부적으로 `deleteOp`로 표준화 후 StateStore에 전달�
 
 ## 5) 의사코드
 
-```ts
-function normalize(raw: any): NormalMessage {
-  const version = detectVersion(raw);
+```csharp
+private static NormalMessage Normalize(JsonElement raw)
+{
+    var version = DetectVersion(raw);
 
-  if (raw.createSurface) return mapCreateSurface(raw, version);
-  if (raw.updateComponents) return mapUpdateComponents(raw, version);
-  if (raw.updateDataModel) return mapUpdateDataModel(raw, version);
-  if (raw.deleteSurface) return mapDeleteSurface(raw, version);
+    if (Has(raw, "createSurface")) return MapCreateSurface(raw, version);
+    if (Has(raw, "updateComponents")) return MapUpdateComponents(raw, version);
+    if (Has(raw, "updateDataModel")) return MapUpdateDataModel(raw, version);
+    if (Has(raw, "deleteSurface")) return MapDeleteSurface(raw, version);
 
-  if (raw.callFunction) return mapCallFunction(raw, version);
-  if (raw.functionResponse) return mapFunctionResponse(raw, version);
-  if (raw.error) return mapError(raw, version);
+    if (Has(raw, "callFunction")) return MapCallFunction(raw, version);
+    if (Has(raw, "functionResponse")) return MapFunctionResponse(raw, version);
+    if (Has(raw, "error")) return MapError(raw, version);
 
-  throw new NormalizerError("E_UNKNOWN_MESSAGE");
+    throw new NormalizerException("E_UNKNOWN_MESSAGE");
 }
 ```
 
