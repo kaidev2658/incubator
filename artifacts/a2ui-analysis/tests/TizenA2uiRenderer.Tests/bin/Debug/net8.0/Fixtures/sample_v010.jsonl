@@ -1,0 +1,2 @@
+{"version":"v0.10","createSurface":{"surfaceId":"main","root":"root","components":{"root":{"component":"Column"}}}}
+{"version":"v0.10","updateDataModel":{"surfaceId":"main","patches":[{"path":["title"],"value":"Hello"},{"path":["obsolete"],"value":null}]}}

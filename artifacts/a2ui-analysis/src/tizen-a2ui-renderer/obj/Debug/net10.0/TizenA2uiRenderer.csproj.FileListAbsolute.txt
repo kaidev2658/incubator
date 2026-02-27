@@ -1,0 +1,15 @@
+/Users/clawdev/workspace/github/incubator/artifacts/a2ui-analysis/src/tizen-a2ui-renderer/bin/Debug/net10.0/TizenA2uiRenderer
+/Users/clawdev/workspace/github/incubator/artifacts/a2ui-analysis/src/tizen-a2ui-renderer/bin/Debug/net10.0/TizenA2uiRenderer.deps.json
+/Users/clawdev/workspace/github/incubator/artifacts/a2ui-analysis/src/tizen-a2ui-renderer/bin/Debug/net10.0/TizenA2uiRenderer.runtimeconfig.json
+/Users/clawdev/workspace/github/incubator/artifacts/a2ui-analysis/src/tizen-a2ui-renderer/bin/Debug/net10.0/TizenA2uiRenderer.dll
+/Users/clawdev/workspace/github/incubator/artifacts/a2ui-analysis/src/tizen-a2ui-renderer/bin/Debug/net10.0/TizenA2uiRenderer.pdb
+/Users/clawdev/workspace/github/incubator/artifacts/a2ui-analysis/src/tizen-a2ui-renderer/obj/Debug/net10.0/TizenA2uiRenderer.GeneratedMSBuildEditorConfig.editorconfig
+/Users/clawdev/workspace/github/incubator/artifacts/a2ui-analysis/src/tizen-a2ui-renderer/obj/Debug/net10.0/TizenA2uiRenderer.AssemblyInfoInputs.cache
+/Users/clawdev/workspace/github/incubator/artifacts/a2ui-analysis/src/tizen-a2ui-renderer/obj/Debug/net10.0/TizenA2uiRenderer.AssemblyInfo.cs
+/Users/clawdev/workspace/github/incubator/artifacts/a2ui-analysis/src/tizen-a2ui-renderer/obj/Debug/net10.0/TizenA2uiRenderer.csproj.CoreCompileInputs.cache
+/Users/clawdev/workspace/github/incubator/artifacts/a2ui-analysis/src/tizen-a2ui-renderer/obj/Debug/net10.0/TizenA2uiRenderer.sourcelink.json
+/Users/clawdev/workspace/github/incubator/artifacts/a2ui-analysis/src/tizen-a2ui-renderer/obj/Debug/net10.0/TizenA2uiRenderer.dll
+/Users/clawdev/workspace/github/incubator/artifacts/a2ui-analysis/src/tizen-a2ui-renderer/obj/Debug/net10.0/refint/TizenA2uiRenderer.dll
+/Users/clawdev/workspace/github/incubator/artifacts/a2ui-analysis/src/tizen-a2ui-renderer/obj/Debug/net10.0/TizenA2uiRenderer.pdb
+/Users/clawdev/workspace/github/incubator/artifacts/a2ui-analysis/src/tizen-a2ui-renderer/obj/Debug/net10.0/TizenA2uiRenderer.genruntimeconfig.cache
+/Users/clawdev/workspace/github/incubator/artifacts/a2ui-analysis/src/tizen-a2ui-renderer/obj/Debug/net10.0/ref/TizenA2uiRenderer.dll
