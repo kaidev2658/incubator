@@ -1,3 +1,5 @@
+using System.Text.Json.Nodes;
+
 namespace TizenA2uiRenderer.Model;
 
 public enum NormalMessageType
@@ -16,9 +18,9 @@ public sealed record NormalMessage(
     NormalMessageType Type,
     string? SurfaceId = null,
     string? FunctionCallId = null,
-    IReadOnlyDictionary<string, object?>? Payload = null);
+    JsonObject? Payload = null);
 
-public sealed record SurfaceDefinition(string SurfaceId, string RootId, IReadOnlyDictionary<string, object?> Components);
+public sealed record SurfaceDefinition(string SurfaceId, string RootId, JsonObject Components);
 
 public sealed record SurfaceUpdate(string SurfaceId, SurfaceDefinition Definition, DataModel DataModel);
 

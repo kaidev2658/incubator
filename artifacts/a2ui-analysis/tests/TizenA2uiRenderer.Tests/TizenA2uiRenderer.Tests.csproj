@@ -10,6 +10,11 @@
     <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\TizenA2uiRenderer.csproj" />
+    <ProjectReference Include="..\..\src\tizen-a2ui-renderer\TizenA2uiRenderer.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Fixtures\**\*">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 </Project>
