@@ -3,6 +3,8 @@
 A2UI 기술 및 구현 중심 분석 자료 모음.
 
 ## 파일 구성
+- `a2ui-normalizer-implementation-guide.md` : v0.9↔v0.10 Normalizer 구현 가이드
+- `tizen-renderer-module-detailed-design.md` : 모듈 책임/인터페이스/복구/성능 상세 설계
 - `tizen-renderer-execution-plan-genui-based.md` : GenUI 구조 기반 Tizen Renderer 6주 실행계획
 - `a2ui-v0.9-to-v0.10-diff-analysis.md` : v0.9→v0.10 변경점/호환성/마이그레이션 분석
 - `genui-deep-analysis-for-tizen-renderer.md` : GenUI 코드/문서 심층 분석 및 Tizen 적용 인사이트
