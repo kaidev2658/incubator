@@ -18,23 +18,23 @@
 tizen-a2ui-renderer/
 ├─ src/
 │  ├─ transport/
-│  │  ├─ a2ui_parser.ts
-│  │  └─ transport_adapter.ts
+│  │  ├─ a2ui_parser.cs
+│  │  └─ transport_adapter.cs
 │  ├─ controller/
-│  │  ├─ surface_controller.ts
-│  │  └─ surface_registry.ts
+│  │  ├─ surface_controller.cs
+│  │  └─ surface_registry.cs
 │  ├─ model/
-│  │  ├─ a2ui_messages.ts
-│  │  ├─ data_model.ts
-│  │  └─ catalog.ts
+│  │  ├─ a2ui_messages.cs
+│  │  ├─ data_model.cs
+│  │  └─ catalog.cs
 │  ├─ renderer/
-│  │  ├─ renderer_bridge.ts
+│  │  ├─ renderer_bridge.cs
 │  │  ├─ components/
-│  │  └─ theme.ts
+│  │  └─ theme.cs
 │  ├─ utils/
-│  │  ├─ logger.ts
-│  │  └─ errors.ts
-│  └─ index.ts
+│  │  ├─ logger.cs
+│  │  └─ errors.cs
+│  └─ Program.cs
 ├─ tests/
 │  ├─ unit/
 │  ├─ integration/
