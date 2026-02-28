@@ -183,6 +183,73 @@ public class IntegrationPipelineTests
         Assert.Equal("ok", lastRender.DataModel!["status"]!.GetValue<string>());
     }
 
+    [Fact]
+    public void Integration_Soak_Stream_Recovers_From_Recurring_Malformed_Segments()
+    {
+        var transport = new TransportAdapter();
+        var controller = new SurfaceController();
+        var renderer = new RecordingRendererBridge();
+        var parseErrors = new List<ParseErrorEvent>();
+
+        transport.OnMessage(controller.HandleMessage);
+        transport.OnError(parseErrors.Add);
+        controller.SurfaceUpdated += update => renderer.Render(update.SurfaceId, update.Definition, update.DataModel);
+
+        var lines = new List<string>
+        {
+            ToJson(new
+            {
+                version = "v0.10",
+                createSurface = new
+                {
+                    surfaceId = "main",
+                    root = "root",
+                    components = new { root = new { component = "Column" } }
+                }
+            })
+        };
+
+        for (var i = 0; i < 3_000; i++)
+        {
+            lines.Add(ToJson(new
+            {
+                version = "v0.10",
+                updateDataModel = new
+                {
+                    surfaceId = "main",
+                    patches = new object[]
+                    {
+                        new { path = new[] { "counter" }, value = i }
+                    }
+                }
+            }));
+
+            if (i % 300 == 0)
+            {
+                lines.Add("{invalid}");
+                lines.Add(ToJson(new
+                {
+                    version = "v0.11",
+                    createSurface = new
+                    {
+                        surfaceId = "bad",
+                        root = "root",
+                        components = new { root = new { component = "Text" } }
+                    }
+                }));
+            }
+        }
+
+        var stream = string.Join('\n', lines) + '\n';
+        FeedInChunks(transport, stream, [2, 5, 3, 8, 13, 21]);
+        transport.Flush();
+
+        Assert.True(parseErrors.Count >= 20);
+        var last = Assert.IsType<RenderOperation>(renderer.Operations[^1]);
+        Assert.Equal(RenderOperationType.Render, last.Type);
+        Assert.Equal(2_999, last.DataModel!["counter"]!.GetValue<int>());
+    }
+
     private static void FeedInChunks(ITransportAdapter transport, string text, int[] chunkSizes)
     {
         var offset = 0;

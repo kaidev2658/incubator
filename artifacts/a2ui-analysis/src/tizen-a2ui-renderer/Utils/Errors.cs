@@ -46,6 +46,8 @@ public static class ErrorCodes
     // Render
     public const string FunctionCallFailed = "E_FUNCTION_CALL_FAILED";
     public const string RenderFailed = "E_RENDER_FAILED";
+    public const string RuntimeAdapterNotConfigured = "E_RUNTIME_ADAPTER_NOT_CONFIGURED";
+    public const string RuntimeAdapterIntegrationInvalid = "E_RUNTIME_ADAPTER_INTEGRATION_INVALID";
 
     public static bool TryExtractCodePrefix(string text, out string code, out string detail)
     {

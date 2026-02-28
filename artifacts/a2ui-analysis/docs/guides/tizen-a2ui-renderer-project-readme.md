@@ -45,6 +45,35 @@ Tizen용 A2UI 스트림 파서/노멀라이저/컨트롤러의 실험 구현입�
 4. controller 테스트로 pending/timeout/correlation 에러를 확정한다.
 5. 마지막으로 integration 테스트에서 chunked stream end-to-end를 검증한다.
 
+## Incident Playbook
+1. `E_RUNTIME_ADAPTER_NOT_CONFIGURED` 또는 `E_RUNTIME_ADAPTER_INTEGRATION_INVALID` 발생 시:
+   - 배포 설정에서 `A2uiRuntimePipeline`이 `RendererBridgeRuntimeAdapter`를 실제 Tizen bridge 구현으로 주입받는지 확인한다.
+   - `NullTizenRuntimeAdapter` 또는 `NullRendererBridge`가 남아 있으면 즉시 롤백하거나 핫픽스로 교체한다.
+2. parse 에러 급증(`E_PARSE_LINE`, `E_PARSE_JSON_TOO_LARGE`, `E_PARSE_INCOMPLETE_JSON`) 시:
+   - 최근 입력 스트림 샘플을 수집해 malformed segment 비율과 payload 크기를 점검한다.
+   - parser 상한(`MaxBufferChars`, `MaxJsonCandidateChars`)과 실제 traffic 크기가 맞는지 확인한다.
+3. runtime 렌더 실패(`E_RENDER_FAILED`) 시:
+   - 로그 필드 `operation`, `surface_id`, `adapter_type` 기준으로 실패 surface와 호출 타입(render/remove)을 우선 분류한다.
+   - 동일 surface 반복 실패면 해당 surface를 삭제/재생성 가능한지 운영 정책에 따라 판단한다.
+4. function correlation 이슈(`E_FUNCTION_RESPONSE_ORPHAN`, `E_FUNCTION_RESPONSE_LATE`, `E_FUNCTION_SURFACE_MISMATCH`) 시:
+   - `function_call_id` 단위로 call/response 시퀀스를 재구성해 상태 전이 누락 여부를 확인한다.
+   - delete/timeout 이후 late response 허용 정책을 제품 요구사항과 재정렬한다.
+
+## Verification Checklist (Phase 5)
+- 런타임 wiring 검증:
+  - startup diagnostics에 runtime adapter misconfiguration이 없어야 한다.
+  - production 모드(`EnforceProductionReadiness=true`)에서 잘못된 wiring은 즉시 fail-fast 해야 한다.
+- 스트림 복원력 검증:
+  - 대용량 batch + malformed segment 혼합 입력에서 parse error 발생 후에도 후속 정상 메시지가 처리되어야 한다.
+  - corrupted tail 이후 `Flush()`에서 `E_PARSE_INCOMPLETE_JSON`이 보고되고 파이프라인은 종료 가능 상태를 유지해야 한다.
+- 구조화 로그 검증:
+  - 주요 에러 로그에 `source`, `error_code`, `error_message`, `surface_id`, `function_call_id`, `integration_path` 필드가 일관되게 존재해야 한다.
+  - runtime adapter 에러 로그에 `operation`, `adapter_type` 필드가 반드시 포함되어야 한다.
+- 배포 전 테스트:
+  - `/usr/local/share/dotnet/dotnet test` 전체 통과
+  - mixed version + malformed recovery 테스트 통과
+  - large/soak batch 테스트 통과
+
 ## Production Integration Checklist (Tizen Runtime Wiring)
 - `Runtime` 경계는 `ITizenRuntimeAdapter`로 고정하고, Tizen UI 바인딩은 어댑터 구현체에서만 수행한다.
 - 앱 부트 시 `A2uiRuntimePipeline` 하나를 생성하고, 파이프라인 수명주기를 앱 수명주기(`OnCreate`/`OnTerminate`)에 맞춘다.

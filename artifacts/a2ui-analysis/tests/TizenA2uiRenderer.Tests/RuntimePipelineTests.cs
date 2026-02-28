@@ -3,6 +3,8 @@ using System.Text.Json.Nodes;
 using TizenA2uiRenderer.Controller;
 using TizenA2uiRenderer.Model;
 using TizenA2uiRenderer.Runtime;
+using TizenA2uiRenderer.Transport;
+using TizenA2uiRenderer.Utils;
 using Xunit;
 
 namespace TizenA2uiRenderer.Tests;
@@ -74,6 +76,99 @@ public class RuntimePipelineTests
         var last = adapter.Operations[^1];
         Assert.Equal(RuntimeOperationType.Render, last.Type);
         Assert.Equal(4_999, last.DataModel!["counter"]!.GetValue<int>());
+    }
+
+    [Fact]
+    public void Pipeline_Reports_Runtime_Readiness_Diagnostics_For_Null_Runtime_Adapter()
+    {
+        var logger = new TestLogger();
+        using var pipeline = new A2uiRuntimePipeline(logger: logger);
+
+        var diagnostic = Assert.Single(pipeline.StartupDiagnostics);
+        Assert.Equal(ErrorCodes.RuntimeAdapterNotConfigured, diagnostic.Code);
+        Assert.Contains(
+            logger.Errors,
+            entry => entry.Fields[StructuredLogFields.ErrorCode]?.ToString() == ErrorCodes.RuntimeAdapterNotConfigured);
+    }
+
+    [Fact]
+    public void Pipeline_Enforces_Production_Readiness_When_Configured()
+    {
+        var ex = Assert.Throws<InvalidOperationException>(() => _ = new A2uiRuntimePipeline(
+            options: new RuntimePipelineOptions
+            {
+                EnforceProductionReadiness = true
+            }));
+
+        Assert.Contains(ErrorCodes.RuntimeAdapterNotConfigured, ex.Message);
+    }
+
+    [Fact]
+    public void Pipeline_Logs_Standardized_Fields_For_Parse_Controller_And_Runtime_Errors()
+    {
+        var logger = new TestLogger();
+        using var pipeline = new A2uiRuntimePipeline(
+            runtimeAdapter: new ThrowingRuntimeAdapter(),
+            logger: logger);
+
+        pipeline.AddChunk("{invalid}\n");
+        pipeline.AddMessage(new NormalMessage(
+            "v0.10",
+            NormalMessageType.DeleteSurface,
+            SurfaceId: "missing"));
+        pipeline.AddMessage(CreateSurface("main"));
+
+        Assert.Contains(logger.Errors, entry =>
+            entry.Fields.TryGetValue(StructuredLogFields.Source, out var source)
+            && source?.ToString() == "transport.parse"
+            && entry.Fields[StructuredLogFields.ErrorCode]?.ToString() == ErrorCodes.ParseLine);
+
+        Assert.Contains(logger.Errors, entry =>
+            entry.Fields.TryGetValue(StructuredLogFields.Source, out var source)
+            && source?.ToString() == "controller"
+            && entry.Fields[StructuredLogFields.ErrorCode]?.ToString() == ErrorCodes.SurfaceNotFound);
+
+        Assert.Contains(logger.Errors, entry =>
+            entry.Fields.TryGetValue(StructuredLogFields.Source, out var source)
+            && source?.ToString() == "runtime.adapter"
+            && entry.Fields[StructuredLogFields.ErrorCode]?.ToString() == ErrorCodes.RenderFailed
+            && entry.Fields.ContainsKey(StructuredLogFields.Operation)
+            && entry.Fields.ContainsKey(StructuredLogFields.AdapterType)
+            && entry.Fields.ContainsKey(StructuredLogFields.IntegrationPath));
+    }
+
+    [Fact]
+    public void Pipeline_Recovers_From_Malformed_Segments_During_Large_Batch_Stream()
+    {
+        var adapter = new InMemoryRuntimeAdapter();
+        using var pipeline = new A2uiRuntimePipeline(runtimeAdapter: adapter);
+        var parseErrors = new List<ParseErrorEvent>();
+
+        pipeline.ParseError += parseErrors.Add;
+
+        var stream = new List<string>
+        {
+            """{"version":"v0.10","createSurface":{"surfaceId":"main","root":"root","components":{"root":{"component":"Column"}}}}"""
+        };
+
+        for (var i = 0; i < 2_000; i++)
+        {
+            stream.Add($"{{\"version\":\"v0.10\",\"updateDataModel\":{{\"surfaceId\":\"main\",\"patches\":[{{\"path\":[\"counter\"],\"value\":{i}}}]}}}}");
+            if (i % 250 == 0)
+            {
+                stream.Add("{invalid}");
+                stream.Add("""{"version":"v0.11","createSurface":{"surfaceId":"bad","root":"r","components":{"r":{"component":"Text"}}}}""");
+            }
+        }
+
+        var payload = string.Join('\n', stream) + "\n";
+        FeedInChunks(pipeline, payload, [3, 7, 2, 11, 5, 13]);
+        pipeline.Flush();
+
+        Assert.True(parseErrors.Count >= 16);
+        Assert.Equal(2_001, adapter.Operations.Count);
+        var last = adapter.Operations[^1];
+        Assert.Equal(1_999, last.DataModel!["counter"]!.GetValue<int>());
     }
 
     [Fact]
@@ -160,6 +255,32 @@ public class RuntimePipelineTests
                 }
             });
 }
+
+internal sealed class ThrowingRuntimeAdapter : ITizenRuntimeAdapter
+{
+    public void Render(string surfaceId, SurfaceDefinition definition, DataModel dataModel)
+        => throw new InvalidOperationException("render failure");
+
+    public void Remove(string surfaceId)
+        => throw new InvalidOperationException("remove failure");
+}
+
+internal sealed class TestLogger : ILogger
+{
+    public List<TestLogEntry> Infos { get; } = [];
+    public List<TestLogEntry> Errors { get; } = [];
+
+    public void Info(string message, IReadOnlyDictionary<string, object?>? fields = null)
+        => Infos.Add(new TestLogEntry(message, fields ?? new Dictionary<string, object?>()));
+
+    public void Error(string message, Exception? ex = null, IReadOnlyDictionary<string, object?>? fields = null)
+        => Errors.Add(new TestLogEntry(message, fields ?? new Dictionary<string, object?>(), ex));
+}
+
+internal sealed record TestLogEntry(
+    string Message,
+    IReadOnlyDictionary<string, object?> Fields,
+    Exception? Exception = null);
 
 internal static class JsonElementExtensions
 {
