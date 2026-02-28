@@ -11,13 +11,21 @@ public sealed class ControllerOptions
 
 public sealed class SurfaceController
 {
+    private enum SurfaceState
+    {
+        Active,
+        Deleted
+    }
+
     private readonly ControllerOptions _options;
     private readonly Func<DateTimeOffset> _utcNow;
     private readonly Dictionary<string, SurfaceDefinition> _surfaces = new();
     private readonly Dictionary<string, DataModel> _dataModels = new();
     private readonly Dictionary<string, Queue<PendingUpdate>> _pending = new();
+    private readonly Dictionary<string, SurfaceState> _surfaceStates = new();
 
     public event Action<SurfaceUpdate>? SurfaceUpdated;
+    public event Action<string>? SurfaceDeleted;
     public event Action<A2uiError>? Error;
 
     public SurfaceController(ControllerOptions? options = null, Func<DateTimeOffset>? utcNow = null)
@@ -67,12 +75,19 @@ public sealed class SurfaceController
             return;
         }
 
+        if (_surfaceStates.TryGetValue(surfaceId, out var state) && state == SurfaceState.Active)
+        {
+            Error?.Invoke(new A2uiError("E_SURFACE_ALREADY_EXISTS", $"surface '{surfaceId}' already exists.", surfaceId));
+            return;
+        }
+
         var payload = message.Payload ?? new JsonObject();
         var rootId = payload["root"]?.GetValue<string>() ?? "root";
         var components = payload["components"] as JsonObject ?? new JsonObject();
 
         _surfaces[surfaceId] = new SurfaceDefinition(surfaceId, rootId, (JsonObject)components.DeepClone());
         _dataModels.TryAdd(surfaceId, new DataModel());
+        _surfaceStates[surfaceId] = SurfaceState.Active;
         ApplyPending(surfaceId);
         PublishSurface(surfaceId);
     }
@@ -83,6 +98,12 @@ public sealed class SurfaceController
         if (string.IsNullOrWhiteSpace(surfaceId))
         {
             Error?.Invoke(new A2uiError("E_SURFACE_ID_REQUIRED", "surfaceId is required for updateComponents."));
+            return;
+        }
+
+        if (IsDeleted(surfaceId))
+        {
+            Error?.Invoke(new A2uiError("E_SURFACE_DELETED", $"surface '{surfaceId}' was deleted.", surfaceId));
             return;
         }
 
@@ -116,6 +137,12 @@ public sealed class SurfaceController
         if (string.IsNullOrWhiteSpace(surfaceId))
         {
             Error?.Invoke(new A2uiError("E_SURFACE_ID_REQUIRED", "surfaceId is required for updateDataModel."));
+            return;
+        }
+
+        if (IsDeleted(surfaceId))
+        {
+            Error?.Invoke(new A2uiError("E_SURFACE_DELETED", $"surface '{surfaceId}' was deleted.", surfaceId));
             return;
         }
 
@@ -159,9 +186,24 @@ public sealed class SurfaceController
     private void HandleDeleteSurface(string? surfaceId)
     {
         if (string.IsNullOrWhiteSpace(surfaceId)) return;
+
+        if (!_surfaceStates.TryGetValue(surfaceId, out var state))
+        {
+            Error?.Invoke(new A2uiError("E_SURFACE_NOT_FOUND", $"surface '{surfaceId}' not found.", surfaceId));
+            return;
+        }
+
+        if (state == SurfaceState.Deleted)
+        {
+            Error?.Invoke(new A2uiError("E_SURFACE_ALREADY_DELETED", $"surface '{surfaceId}' already deleted.", surfaceId));
+            return;
+        }
+
         _surfaces.Remove(surfaceId);
         _dataModels.Remove(surfaceId);
         _pending.Remove(surfaceId);
+        _surfaceStates[surfaceId] = SurfaceState.Deleted;
+        SurfaceDeleted?.Invoke(surfaceId);
     }
 
     private void PublishSurface(string surfaceId)
@@ -230,6 +272,9 @@ public sealed class SurfaceController
 
     private bool IsExpired(PendingUpdate pending)
         => _utcNow() - pending.EnqueueTime > _options.PendingTtl;
+
+    private bool IsDeleted(string surfaceId)
+        => _surfaceStates.TryGetValue(surfaceId, out var state) && state == SurfaceState.Deleted;
 
     private sealed record PendingUpdate(NormalMessage Message, DateTimeOffset EnqueueTime);
 }

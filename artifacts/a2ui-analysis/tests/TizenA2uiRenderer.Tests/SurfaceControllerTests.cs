@@ -127,4 +127,48 @@ public class SurfaceControllerTests
         Assert.NotNull(last);
         Assert.Null(last!.DataModel.Get("x"));
     }
+
+    [Fact]
+    public void Controller_Rejects_Duplicate_CreateSurface()
+    {
+        var controller = new SurfaceController();
+        A2uiError? lastError = null;
+        controller.Error += e => lastError = e;
+
+        var create = new NormalMessage(
+            "v0.10",
+            NormalMessageType.CreateSurface,
+            "main",
+            Payload: JsonNode.Parse("""{"surfaceId":"main","root":"root","components":{"root":{"component":"Column"}}}""")!.AsObject());
+
+        controller.HandleMessage(create);
+        controller.HandleMessage(create);
+
+        Assert.NotNull(lastError);
+        Assert.Equal("E_SURFACE_ALREADY_EXISTS", lastError!.Code);
+    }
+
+    [Fact]
+    public void Controller_Rejects_Update_After_Delete()
+    {
+        var controller = new SurfaceController();
+        A2uiError? lastError = null;
+        controller.Error += e => lastError = e;
+
+        controller.HandleMessage(new NormalMessage(
+            "v0.10",
+            NormalMessageType.CreateSurface,
+            "main",
+            Payload: JsonNode.Parse("""{"surfaceId":"main","root":"root","components":{"root":{"component":"Column"}}}""")!.AsObject()));
+
+        controller.HandleMessage(new NormalMessage("v0.10", NormalMessageType.DeleteSurface, "main"));
+        controller.HandleMessage(new NormalMessage(
+            "v0.10",
+            NormalMessageType.UpdateDataModel,
+            "main",
+            Payload: JsonNode.Parse("""{"surfaceId":"main","patches":[{"path":["status"],"value":"after-delete"}]}""")!.AsObject()));
+
+        Assert.NotNull(lastError);
+        Assert.Equal("E_SURFACE_DELETED", lastError!.Code);
+    }
 }
