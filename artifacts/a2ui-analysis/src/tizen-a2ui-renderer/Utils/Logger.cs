@@ -19,6 +19,7 @@ public static class StructuredLogFields
     public const string FunctionCallId = "function_call_id";
     public const string Operation = "operation";
     public const string IntegrationPath = "integration_path";
+    public const string RuntimeMode = "runtime_mode";
     public const string AdapterType = "adapter_type";
     public const string BridgeType = "bridge_type";
     public const string RawLine = "raw_line";

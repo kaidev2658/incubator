@@ -79,13 +79,39 @@ public class RuntimePipelineTests
     }
 
     [Fact]
+    public void Pipeline_EndToEnd_Records_Trace_Through_Tizen_Binding_Adapter_Boundary()
+    {
+        var hooks = new RecordingTizenBindingHooks();
+        var adapter = new TizenRuntimeAdapter(hooks);
+        using var pipeline = new A2uiRuntimePipeline(runtimeAdapter: adapter);
+
+        pipeline.AddMessage(CreateSurface("main"));
+        pipeline.AddMessage(UpdateData("main", "counter", 7));
+        pipeline.AddMessage(new NormalMessage(
+            "v0.10",
+            NormalMessageType.DeleteSurface,
+            "main"));
+
+        Assert.Empty(pipeline.StartupDiagnostics);
+        Assert.Equal("tizen-binding-poc", pipeline.RuntimeAdapterStatus.RuntimeMode);
+        Assert.True(pipeline.RuntimeAdapterStatus.Capabilities.SupportsRealTizenBinding);
+
+        Assert.Equal(4, hooks.Operations.Count);
+        Assert.Equal("init:tizen-native-test-binding", hooks.Operations[0]);
+        Assert.Equal("render:main:root:counter=0", hooks.Operations[1]);
+        Assert.Equal("render:main:root:counter=7", hooks.Operations[2]);
+        Assert.Equal("remove:main", hooks.Operations[3]);
+    }
+
+    [Fact]
     public void Pipeline_Reports_Runtime_Readiness_Diagnostics_For_Null_Runtime_Adapter()
     {
         var logger = new TestLogger();
         using var pipeline = new A2uiRuntimePipeline(logger: logger);
 
-        var diagnostic = Assert.Single(pipeline.StartupDiagnostics);
-        Assert.Equal(ErrorCodes.RuntimeAdapterNotConfigured, diagnostic.Code);
+        Assert.Contains(
+            pipeline.StartupDiagnostics,
+            diagnostic => diagnostic.Code == ErrorCodes.RuntimeAdapterNotConfigured);
         Assert.Contains(
             logger.Errors,
             entry => entry.Fields[StructuredLogFields.ErrorCode]?.ToString() == ErrorCodes.RuntimeAdapterNotConfigured);
@@ -441,11 +467,46 @@ public class RuntimePipelineTests
 
 internal sealed class ThrowingRuntimeAdapter : ITizenRuntimeAdapter
 {
+    private static readonly RuntimeAdapterStatus Status = new(
+        nameof(ThrowingRuntimeAdapter),
+        RuntimeMode: "throwing-test",
+        new RuntimeAdapterCapabilities(
+            SupportsRender: true,
+            SupportsRemove: true,
+            SupportsRealTizenBinding: false,
+            IsInitialized: true),
+        []);
+
+    public RuntimeAdapterStatus Initialize() => Status;
+
+    public RuntimeAdapterStatus GetStatus() => Status;
+
     public void Render(string surfaceId, SurfaceDefinition definition, DataModel dataModel)
         => throw new InvalidOperationException("render failure");
 
     public void Remove(string surfaceId)
         => throw new InvalidOperationException("remove failure");
+}
+
+internal sealed class RecordingTizenBindingHooks : ITizenBindingHooks
+{
+    public List<string> Operations { get; } = [];
+
+    public string BindingName => "tizen-native-test-binding";
+    public bool SupportsRealBinding => true;
+    public bool CanRender => true;
+    public bool CanRemove => true;
+
+    public bool IsAvailable() => true;
+
+    public void Initialize()
+        => Operations.Add($"init:{BindingName}");
+
+    public void Render(string surfaceId, SurfaceDefinition definition, DataModel dataModel)
+        => Operations.Add($"render:{surfaceId}:{definition.RootId}:counter={dataModel.Snapshot()["counter"]?.GetValue<int>() ?? 0}");
+
+    public void Remove(string surfaceId)
+        => Operations.Add($"remove:{surfaceId}");
 }
 
 internal sealed class TestLogger : ILogger

@@ -49,6 +49,8 @@ public static class ErrorCodes
     public const string RuntimeOperationFailed = "E_RUNTIME_OPERATION_FAILED";
     public const string RuntimeAdapterNotConfigured = "E_RUNTIME_ADAPTER_NOT_CONFIGURED";
     public const string RuntimeAdapterIntegrationInvalid = "E_RUNTIME_ADAPTER_INTEGRATION_INVALID";
+    public const string RuntimeAdapterCapabilityMissing = "E_RUNTIME_ADAPTER_CAPABILITY_MISSING";
+    public const string RuntimeAdapterInitializationFailed = "E_RUNTIME_ADAPTER_INIT_FAILED";
 
     public static bool TryExtractCodePrefix(string text, out string code, out string detail)
     {
@@ -96,7 +98,8 @@ public static class ErrorCodes
                 or FunctionResponseLate or FunctionSurfaceMismatch or FunctionTimeout
                 or FunctionStateTransitionInvalid => "controller",
             FunctionCallFailed or RenderFailed or RuntimeOperationFailed
-                or RuntimeAdapterNotConfigured or RuntimeAdapterIntegrationInvalid => "runtime",
+                or RuntimeAdapterNotConfigured or RuntimeAdapterIntegrationInvalid
+                or RuntimeAdapterCapabilityMissing or RuntimeAdapterInitializationFailed => "runtime",
             _ => "unknown"
         };
 
@@ -114,7 +117,8 @@ public static class ErrorCodes
             PendingOverflow or PendingExpired or FunctionTimeout => "resilience",
             FunctionCancelled => "control_flow",
             FunctionCallFailed or RenderFailed or RuntimeOperationFailed => "runtime_operation",
-            RuntimeAdapterNotConfigured or RuntimeAdapterIntegrationInvalid => "integration",
+            RuntimeAdapterNotConfigured or RuntimeAdapterIntegrationInvalid
+                or RuntimeAdapterCapabilityMissing or RuntimeAdapterInitializationFailed => "integration",
             Controller => "internal",
             _ => "unknown"
         };

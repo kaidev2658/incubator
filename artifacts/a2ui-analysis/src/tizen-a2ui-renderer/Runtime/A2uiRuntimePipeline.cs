@@ -26,11 +26,13 @@ public sealed class A2uiRuntimePipeline : IDisposable
     private readonly Action<SurfaceUpdate> _surfaceUpdatedHandler;
     private readonly Action<string> _surfaceDeletedHandler;
     private readonly Action<A2uiError> _controllerErrorHandler;
+    private readonly RuntimeAdapterStatus _runtimeAdapterStatus;
 
     public event Action<string>? TextReceived;
     public event Action<ParseErrorEvent>? ParseError;
     public event Action<A2uiError>? ControllerError;
     public IReadOnlyList<A2uiError> StartupDiagnostics => _startupDiagnostics;
+    public RuntimeAdapterStatus RuntimeAdapterStatus => _runtimeAdapterStatus;
 
     public A2uiRuntimePipeline(
         ITransportAdapter? transport = null,
@@ -45,7 +47,7 @@ public sealed class A2uiRuntimePipeline : IDisposable
         _options = options ?? new RuntimePipelineOptions();
         _logger = logger ?? new NullLogger();
 
-        ValidateRuntimeAdapterReadiness();
+        _runtimeAdapterStatus = ValidateRuntimeAdapterReadiness();
 
         _messageSubscription = _transport.OnMessage(_controller.HandleMessage);
         _textSubscription = _transport.OnText(text => TextReceived?.Invoke(text));
@@ -86,22 +88,31 @@ public sealed class A2uiRuntimePipeline : IDisposable
         _parseErrorSubscription.Dispose();
     }
 
-    private void ValidateRuntimeAdapterReadiness()
+    private RuntimeAdapterStatus ValidateRuntimeAdapterReadiness()
     {
-        var diagnostics = new List<A2uiError>();
+        var adapterStatus = _runtimeAdapter.Initialize();
+        var diagnostics = new List<A2uiError>(adapterStatus.Diagnostics);
 
-        if (_runtimeAdapter is NullTizenRuntimeAdapter)
+        if (!adapterStatus.Capabilities.SupportsRender)
         {
             diagnostics.Add(new A2uiError(
-                ErrorCodes.RuntimeAdapterNotConfigured,
-                "Runtime adapter is NullTizenRuntimeAdapter. Use RendererBridgeRuntimeAdapter for Tizen integration."));
+                ErrorCodes.RuntimeAdapterCapabilityMissing,
+                $"Runtime adapter '{adapterStatus.AdapterType}' does not support render operation."));
         }
 
-        if (_runtimeAdapter is RendererBridgeRuntimeAdapter bridgeAdapter && bridgeAdapter.IsNoopBridge)
+        if (!adapterStatus.Capabilities.SupportsRemove)
         {
             diagnostics.Add(new A2uiError(
-                ErrorCodes.RuntimeAdapterIntegrationInvalid,
-                "RendererBridgeRuntimeAdapter is bound to NullRendererBridge. Replace with real Tizen bridge."));
+                ErrorCodes.RuntimeAdapterCapabilityMissing,
+                $"Runtime adapter '{adapterStatus.AdapterType}' does not support remove operation."));
+        }
+
+        if (!adapterStatus.Capabilities.IsInitialized
+            && diagnostics.All(d => d.Code != ErrorCodes.RuntimeAdapterInitializationFailed))
+        {
+            diagnostics.Add(new A2uiError(
+                ErrorCodes.RuntimeAdapterInitializationFailed,
+                $"Runtime adapter '{adapterStatus.AdapterType}' did not complete initialization."));
         }
 
         foreach (var diagnostic in diagnostics)
@@ -112,7 +123,10 @@ public sealed class A2uiRuntimePipeline : IDisposable
                 fields: CreateErrorFields(
                     source: "runtime.startup",
                     code: diagnostic.Code,
-                    message: diagnostic.Message));
+                    message: diagnostic.Message,
+                    adapterType: adapterStatus.AdapterType,
+                    runtimeMode: adapterStatus.RuntimeMode,
+                    bridgeType: GetBridgeType()));
         }
 
         if (_options.EnforceProductionReadiness && diagnostics.Count > 0)
@@ -120,6 +134,8 @@ public sealed class A2uiRuntimePipeline : IDisposable
             var first = diagnostics[0];
             throw new InvalidOperationException($"{first.Code}: {first.Message}");
         }
+
+        return adapterStatus with { Diagnostics = diagnostics };
     }
 
     private void HandleParseError(ParseErrorEvent error)
@@ -166,7 +182,8 @@ public sealed class A2uiRuntimePipeline : IDisposable
                     message: runtimeError.Message,
                     surfaceId: surfaceId,
                     operation: operation.ToString().ToLowerInvariant(),
-                    adapterType: _runtimeAdapter.GetType().Name,
+                    adapterType: _runtimeAdapterStatus.AdapterType,
+                    runtimeMode: _runtimeAdapterStatus.RuntimeMode,
                     bridgeType: GetBridgeType()));
             ControllerError?.Invoke(runtimeError);
 
@@ -185,6 +202,7 @@ public sealed class A2uiRuntimePipeline : IDisposable
         string? functionCallId = null,
         string? operation = null,
         string? adapterType = null,
+        string? runtimeMode = null,
         string? bridgeType = null,
         string? rawLine = null)
     {
@@ -199,6 +217,7 @@ public sealed class A2uiRuntimePipeline : IDisposable
             [StructuredLogFields.FunctionCallId] = functionCallId,
             [StructuredLogFields.Operation] = operation,
             [StructuredLogFields.IntegrationPath] = _options.IntegrationPath,
+            [StructuredLogFields.RuntimeMode] = runtimeMode ?? _runtimeAdapterStatus.RuntimeMode,
             [StructuredLogFields.AdapterType] = adapterType,
             [StructuredLogFields.BridgeType] = bridgeType,
             [StructuredLogFields.RawLine] = rawLine
