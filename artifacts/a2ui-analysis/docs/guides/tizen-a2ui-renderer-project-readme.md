@@ -44,3 +44,21 @@ Tizen용 A2UI 스트림 파서/노멀라이저/컨트롤러의 실험 구현입�
 3. normalizer 테스트로 버전별 필수 필드 검증을 확정한다.
 4. controller 테스트로 pending/timeout/correlation 에러를 확정한다.
 5. 마지막으로 integration 테스트에서 chunked stream end-to-end를 검증한다.
+
+## Production Integration Checklist (Tizen Runtime Wiring)
+- `Runtime` 경계는 `ITizenRuntimeAdapter`로 고정하고, Tizen UI 바인딩은 어댑터 구현체에서만 수행한다.
+- 앱 부트 시 `A2uiRuntimePipeline` 하나를 생성하고, 파이프라인 수명주기를 앱 수명주기(`OnCreate`/`OnTerminate`)에 맞춘다.
+- 실제 런타임에서는 `RendererBridgeRuntimeAdapter`를 통해 `IRendererBridge`(Tizen UI 스레드 바인딩 구현)와 연결한다.
+- 테스트/시뮬레이션 환경에서는 `InMemoryRuntimeAdapter`를 사용해 render/remove operation trace를 검증한다.
+- `ParseError`/`ControllerError` 이벤트를 반드시 로깅 파이프라인에 연결하고, `surfaceId`/`functionCallId`를 함께 기록한다.
+- UI 렌더 실행은 반드시 Tizen 메인(UI) 스레드에서 처리하고, 백그라운드 입력 스레드와 분리한다.
+- `ControllerOptions`는 프로덕션 워크로드 기준으로 조정한다:
+  - `PendingTtl`: 생성 전 업데이트 허용 시간
+  - `FunctionPendingTtl`: function call 타임아웃 임계값
+  - `MaxPendingPerSurface`: surface별 큐 상한
+- surface delete 시 잔여 function call이 취소(`E_FUNCTION_CANCELLED`)되는 경로를 운영 모니터링 항목에 포함한다.
+- 대용량 스트림에서는 chunk 단위 입력을 유지하고, 파서 상한(`MaxBufferChars`, `MaxJsonCandidateChars`)을 운영 안전값으로 명시한다.
+- 배포 전 최소 검증:
+  - mixed version/corrupted stream e2e trace 테스트
+  - large batch 처리 테스트
+  - function cancellation/late response 경로 테스트
