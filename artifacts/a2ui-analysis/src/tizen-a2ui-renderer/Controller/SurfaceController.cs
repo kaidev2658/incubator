@@ -6,6 +6,7 @@ namespace TizenA2uiRenderer.Controller;
 public sealed class ControllerOptions
 {
     public TimeSpan PendingTtl { get; init; } = TimeSpan.FromSeconds(60);
+    public TimeSpan FunctionPendingTtl { get; init; } = TimeSpan.FromSeconds(60);
     public int MaxPendingPerSurface { get; init; } = 100;
 }
 
@@ -23,6 +24,7 @@ public sealed class SurfaceController
     private readonly Dictionary<string, DataModel> _dataModels = new();
     private readonly Dictionary<string, Queue<PendingUpdate>> _pending = new();
     private readonly Dictionary<string, SurfaceState> _surfaceStates = new();
+    private readonly Dictionary<string, PendingFunctionCall> _pendingFunctionCalls = new();
 
     public event Action<SurfaceUpdate>? SurfaceUpdated;
     public event Action<string>? SurfaceDeleted;
@@ -38,6 +40,7 @@ public sealed class SurfaceController
     {
         try
         {
+            ExpirePendingFunctionCalls();
             switch (message.Type)
             {
                 case NormalMessageType.CreateSurface:
@@ -53,8 +56,10 @@ public sealed class SurfaceController
                     HandleDeleteSurface(message.SurfaceId);
                     break;
                 case NormalMessageType.CallFunction:
+                    HandleCallFunction(message);
+                    break;
                 case NormalMessageType.FunctionResponse:
-                    // Hook point for future runtime function-call routing.
+                    HandleFunctionResponse(message);
                     break;
             }
         }
@@ -206,6 +211,79 @@ public sealed class SurfaceController
         SurfaceDeleted?.Invoke(surfaceId);
     }
 
+    private void HandleCallFunction(NormalMessage message)
+    {
+        var functionCallId = message.FunctionCallId;
+        if (string.IsNullOrWhiteSpace(functionCallId))
+        {
+            Error?.Invoke(new A2uiError("E_FUNCTION_CALL_ID_REQUIRED", "functionCallId is required for callFunction.", message.SurfaceId));
+            return;
+        }
+
+        var surfaceId = message.SurfaceId;
+        if (string.IsNullOrWhiteSpace(surfaceId))
+        {
+            Error?.Invoke(new A2uiError("E_SURFACE_ID_REQUIRED", "surfaceId is required for callFunction.", FunctionCallId: functionCallId));
+            return;
+        }
+
+        if (IsDeleted(surfaceId))
+        {
+            Error?.Invoke(new A2uiError("E_SURFACE_DELETED", $"surface '{surfaceId}' was deleted.", surfaceId, functionCallId));
+            return;
+        }
+
+        if (!_surfaces.ContainsKey(surfaceId))
+        {
+            Error?.Invoke(new A2uiError("E_SURFACE_NOT_FOUND", $"surface '{surfaceId}' not found for callFunction.", surfaceId, functionCallId));
+            return;
+        }
+
+        var name = GetOptionalString(message.Payload?["name"]);
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            Error?.Invoke(new A2uiError("E_FUNCTION_NAME_REQUIRED", "callFunction.name is required.", surfaceId, functionCallId));
+            return;
+        }
+
+        if (_pendingFunctionCalls.ContainsKey(functionCallId))
+        {
+            Error?.Invoke(new A2uiError("E_FUNCTION_CALL_DUPLICATE", $"functionCallId '{functionCallId}' is already pending.", surfaceId, functionCallId));
+            return;
+        }
+
+        _pendingFunctionCalls[functionCallId] = new PendingFunctionCall(functionCallId, surfaceId, name, _utcNow());
+    }
+
+    private void HandleFunctionResponse(NormalMessage message)
+    {
+        var functionCallId = message.FunctionCallId;
+        if (string.IsNullOrWhiteSpace(functionCallId))
+        {
+            Error?.Invoke(new A2uiError("E_FUNCTION_CALL_ID_REQUIRED", "functionCallId is required for functionResponse.", message.SurfaceId));
+            return;
+        }
+
+        if (!_pendingFunctionCalls.TryGetValue(functionCallId, out var pending))
+        {
+            Error?.Invoke(new A2uiError("E_FUNCTION_RESPONSE_ORPHAN", $"functionResponse has no pending call for '{functionCallId}'.", message.SurfaceId, functionCallId));
+            return;
+        }
+
+        var responseSurfaceId = message.SurfaceId;
+        if (!string.IsNullOrWhiteSpace(responseSurfaceId) && !string.Equals(responseSurfaceId, pending.SurfaceId, StringComparison.Ordinal))
+        {
+            Error?.Invoke(new A2uiError(
+                "E_FUNCTION_SURFACE_MISMATCH",
+                $"functionResponse surfaceId '{responseSurfaceId}' does not match call surface '{pending.SurfaceId}'.",
+                responseSurfaceId,
+                functionCallId));
+            return;
+        }
+
+        _pendingFunctionCalls.Remove(functionCallId);
+    }
+
     private void PublishSurface(string surfaceId)
     {
         if (!_surfaces.TryGetValue(surfaceId, out var definition)) return;
@@ -276,5 +354,35 @@ public sealed class SurfaceController
     private bool IsDeleted(string surfaceId)
         => _surfaceStates.TryGetValue(surfaceId, out var state) && state == SurfaceState.Deleted;
 
+    private void ExpirePendingFunctionCalls()
+    {
+        if (_pendingFunctionCalls.Count == 0)
+        {
+            return;
+        }
+
+        var now = _utcNow();
+        var expired = _pendingFunctionCalls.Values
+            .Where(call => now - call.EnqueueTime > _options.FunctionPendingTtl)
+            .ToList();
+
+        foreach (var call in expired)
+        {
+            _pendingFunctionCalls.Remove(call.FunctionCallId);
+            Error?.Invoke(new A2uiError(
+                "E_FUNCTION_TIMEOUT",
+                $"function call '{call.Name}' timed out.",
+                call.SurfaceId,
+                call.FunctionCallId));
+        }
+    }
+
+    private static string? GetOptionalString(JsonNode? node)
+    {
+        if (node is null) return null;
+        return node is JsonValue value && value.TryGetValue<string>(out var str) ? str : null;
+    }
+
     private sealed record PendingUpdate(NormalMessage Message, DateTimeOffset EnqueueTime);
+    private sealed record PendingFunctionCall(string FunctionCallId, string SurfaceId, string Name, DateTimeOffset EnqueueTime);
 }

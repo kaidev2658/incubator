@@ -1,0 +1,6 @@
+status: preparing dashboard
+{"version":"v0.9","createSurface":{"surfaceId":"legacy-main","root":"root","components":{"root":{"component":"Column"},"status":{"component":"Text","props":{"text":"Boot"}}}}}
+{"version":"v0.9","updateDataModel":{"surfaceId":"legacy-main","patches":[{"path":["status"],"value":"Legacy live"},{"path":["obsolete"]}]}}
+{"version":"v0.10","updateComponents":{"surfaceId":"legacy-main","components":{"status":{"component":"Text","props":{"text":"Unified stream"}}}}}
+{"version":"v0.10","functionCallId":"fn-mixed-1","callFunction":{"surfaceId":"legacy-main","name":"ackAlert","args":{"id":"AL-77"}}}
+{"version":"v0.10","functionCallId":"fn-mixed-1","functionResponse":{"surfaceId":"legacy-main","value":{"ok":true}}}

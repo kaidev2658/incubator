@@ -171,4 +171,121 @@ public class SurfaceControllerTests
         Assert.NotNull(lastError);
         Assert.Equal("E_SURFACE_DELETED", lastError!.Code);
     }
+
+    [Fact]
+    public void Controller_FunctionResponse_Without_Pending_Call_Reports_Orphan()
+    {
+        var controller = new SurfaceController();
+        A2uiError? lastError = null;
+        controller.Error += e => lastError = e;
+
+        controller.HandleMessage(new NormalMessage(
+            "v0.10",
+            NormalMessageType.FunctionResponse,
+            "main",
+            "fn-orphan",
+            JsonNode.Parse("""{"surfaceId":"main","value":{"ok":true}}""")!.AsObject()));
+
+        Assert.NotNull(lastError);
+        Assert.Equal("E_FUNCTION_RESPONSE_ORPHAN", lastError!.Code);
+        Assert.Equal("fn-orphan", lastError.FunctionCallId);
+    }
+
+    [Fact]
+    public void Controller_CallFunction_Times_Out_When_Not_Answered()
+    {
+        var now = new DateTimeOffset(2026, 2, 28, 0, 0, 0, TimeSpan.Zero);
+        var controller = new SurfaceController(
+            new ControllerOptions
+            {
+                PendingTtl = TimeSpan.FromMinutes(1),
+                FunctionPendingTtl = TimeSpan.FromSeconds(1)
+            },
+            () => now);
+        A2uiError? lastError = null;
+        controller.Error += e => lastError = e;
+
+        controller.HandleMessage(new NormalMessage(
+            "v0.10",
+            NormalMessageType.CreateSurface,
+            "main",
+            Payload: JsonNode.Parse("""{"surfaceId":"main","root":"root","components":{"root":{"component":"Column"}}}""")!.AsObject()));
+
+        controller.HandleMessage(new NormalMessage(
+            "v0.10",
+            NormalMessageType.CallFunction,
+            "main",
+            "fn-timeout",
+            JsonNode.Parse("""{"surfaceId":"main","name":"confirm","args":{"message":"ok?"}}""")!.AsObject()));
+
+        now = now.AddSeconds(2);
+        controller.HandleMessage(new NormalMessage(
+            "v0.10",
+            NormalMessageType.UpdateDataModel,
+            "main",
+            Payload: JsonNode.Parse("""{"surfaceId":"main","patches":[{"path":["status"],"value":"after-timeout"}]}""")!.AsObject()));
+
+        Assert.NotNull(lastError);
+        Assert.Equal("E_FUNCTION_TIMEOUT", lastError!.Code);
+        Assert.Equal("fn-timeout", lastError.FunctionCallId);
+    }
+
+    [Fact]
+    public void Controller_FunctionResponse_Surface_Mismatch_Reports_Error()
+    {
+        var controller = new SurfaceController();
+        A2uiError? lastError = null;
+        controller.Error += e => lastError = e;
+
+        controller.HandleMessage(new NormalMessage(
+            "v0.10",
+            NormalMessageType.CreateSurface,
+            "main",
+            Payload: JsonNode.Parse("""{"surfaceId":"main","root":"root","components":{"root":{"component":"Column"}}}""")!.AsObject()));
+
+        controller.HandleMessage(new NormalMessage(
+            "v0.10",
+            NormalMessageType.CallFunction,
+            "main",
+            "fn-mismatch",
+            JsonNode.Parse("""{"surfaceId":"main","name":"confirm","args":{"message":"ok?"}}""")!.AsObject()));
+
+        controller.HandleMessage(new NormalMessage(
+            "v0.10",
+            NormalMessageType.FunctionResponse,
+            "secondary",
+            "fn-mismatch",
+            JsonNode.Parse("""{"surfaceId":"secondary","value":{"ok":false}}""")!.AsObject()));
+
+        Assert.NotNull(lastError);
+        Assert.Equal("E_FUNCTION_SURFACE_MISMATCH", lastError!.Code);
+        Assert.Equal("fn-mismatch", lastError.FunctionCallId);
+    }
+
+    [Fact]
+    public void Controller_Rejects_Duplicate_FunctionCallId()
+    {
+        var controller = new SurfaceController();
+        A2uiError? lastError = null;
+        controller.Error += e => lastError = e;
+
+        controller.HandleMessage(new NormalMessage(
+            "v0.10",
+            NormalMessageType.CreateSurface,
+            "main",
+            Payload: JsonNode.Parse("""{"surfaceId":"main","root":"root","components":{"root":{"component":"Column"}}}""")!.AsObject()));
+
+        var call = new NormalMessage(
+            "v0.10",
+            NormalMessageType.CallFunction,
+            "main",
+            "fn-dup",
+            JsonNode.Parse("""{"surfaceId":"main","name":"confirm","args":{"message":"ok?"}}""")!.AsObject());
+
+        controller.HandleMessage(call);
+        controller.HandleMessage(call);
+
+        Assert.NotNull(lastError);
+        Assert.Equal("E_FUNCTION_CALL_DUPLICATE", lastError!.Code);
+    }
 }

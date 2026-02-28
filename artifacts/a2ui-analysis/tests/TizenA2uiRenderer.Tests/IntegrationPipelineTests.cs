@@ -149,6 +149,40 @@ public class IntegrationPipelineTests
         Assert.Equal(RenderOperationType.Remove, renderer.Operations[2].Type);
     }
 
+    [Fact]
+    public void Integration_Processes_Mixed_Versions_With_Corrupted_Tail()
+    {
+        var transport = new TransportAdapter();
+        var controller = new SurfaceController(new ControllerOptions
+        {
+            FunctionPendingTtl = TimeSpan.FromMinutes(5)
+        });
+        var renderer = new RecordingRendererBridge();
+        var parseErrors = new List<ParseErrorEvent>();
+        var controllerErrors = new List<A2uiError>();
+
+        transport.OnMessage(controller.HandleMessage);
+        transport.OnError(parseErrors.Add);
+        controller.Error += controllerErrors.Add;
+        controller.SurfaceUpdated += update => renderer.Render(update.SurfaceId, update.Definition, update.DataModel);
+
+        var mixed = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Fixtures", "mixed_versions_realworld.jsonl"));
+        var corrupted = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Fixtures", "corrupted_partial_stream.txt"));
+        var stream = $"{mixed}\n{corrupted}\n";
+
+        FeedInChunks(transport, stream, [9, 1, 17, 5, 23, 3]);
+        transport.Flush();
+
+        Assert.Contains(parseErrors, e => e.Code == "E_PARSE_LINE");
+        Assert.Contains(parseErrors, e => e.Code == "E_PARSE_INCOMPLETE_JSON");
+        Assert.DoesNotContain(controllerErrors, e => e.Code == "E_FUNCTION_TIMEOUT");
+
+        Assert.NotEmpty(renderer.Operations);
+        var lastRender = Assert.IsType<RenderOperation>(renderer.Operations[^1]);
+        Assert.Equal(RenderOperationType.Render, lastRender.Type);
+        Assert.Equal("ok", lastRender.DataModel!["status"]!.GetValue<string>());
+    }
+
     private static void FeedInChunks(ITransportAdapter transport, string text, int[] chunkSizes)
     {
         var offset = 0;

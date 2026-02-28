@@ -38,6 +38,16 @@ public sealed record NormalMessage(
 - timeout 시 `E_FUNCTION_TIMEOUT`
 - `wantResponse=false`면 응답 생략 가능
 
+### 입력 검증 규칙 (실행 경로 포함)
+- `callFunction`/`functionResponse`는 `v0.10`에서만 허용
+- `callFunction`: `functionCallId` + `callFunction.name` + `callFunction.surfaceId` 필수
+- `functionResponse`: `functionCallId` + `functionResponse.value` 필수
+- 런타임 컨트롤러는 pending call correlation을 수행하고 아래를 검증
+  - 중복 ID: `E_FUNCTION_CALL_DUPLICATE`
+  - orphan response: `E_FUNCTION_RESPONSE_ORPHAN`
+  - surface mismatch: `E_FUNCTION_SURFACE_MISMATCH`
+  - timeout: `E_FUNCTION_TIMEOUT`
+
 ## 4) 삭제 semantics 통합
 - v0.9: value omitted/undefined -> deleteOp
 - v0.10: value null -> deleteOp
@@ -98,7 +108,13 @@ private static NormalMessage Normalize(JsonElement raw)
 - 모든 오류를 NormalForm `Error`로 통일
 - 버전별 회귀 테스트 분리 운영
 
-## 8) 샘플 NormalForm
+## 8) 디버깅 워크플로우 (권장)
+1. 실제 로그를 `Fixtures/*.jsonl|*.txt`로 저장해 chunk replay 가능한 형태로 고정
+2. Parser 테스트에서 `E_PARSE_*` 여부와 라인 복구를 먼저 확인
+3. Normalizer 테스트에서 버전 분기/필수 필드 오류코드를 확인
+4. Controller 테스트에서 function call lifecycle(timeout/orphan/mismatch)을 확인
+5. Integration 테스트에서 mixed v0.9/v0.10 + corrupted tail까지 통합 검증
+## 9) 샘플 NormalForm
 
 ```json
 {
@@ -112,7 +128,7 @@ private static NormalMessage Normalize(JsonElement raw)
 }
 ```
 
-## 9) 빠른 구현 체크리스트
+## 10) 빠른 구현 체크리스트
 - [ ] VersionRouter
 - [ ] MessageMapper(v0.9)
 - [ ] MessageMapper(v0.10)
