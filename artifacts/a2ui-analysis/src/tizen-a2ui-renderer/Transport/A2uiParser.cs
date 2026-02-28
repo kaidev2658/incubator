@@ -13,13 +13,19 @@ public sealed record ParseErrorEvent(string Code, string Message, string? RawLin
 public sealed class ParserOptions
 {
     public int MaxBufferChars { get; init; } = 1_000_000;
+    public int MaxJsonCandidateChars { get; init; } = 256_000;
 }
 
 public sealed class A2uiParser
 {
     private readonly ParserOptions _options;
     private readonly StringBuilder _buffer = new();
+    private readonly StringBuilder _jsonCandidate = new();
     private bool _inCodeFence;
+    private int _jsonBalance;
+    private bool _jsonInString;
+    private bool _jsonEscape;
+    private bool _jsonStarted;
 
     public A2uiParser(ParserOptions? options = null) => _options = options ?? new ParserOptions();
 
@@ -40,6 +46,12 @@ public sealed class A2uiParser
         var events = new List<GenerationEvent>();
         events.AddRange(DrainCompleteLines());
 
+        if (_jsonCandidate.Length > 0)
+        {
+            events.Add(new ParseErrorEvent("E_PARSE_INCOMPLETE_JSON", "Incomplete JSON object at end of stream", _jsonCandidate.ToString()));
+            ResetCandidate();
+        }
+
         if (_buffer.Length > 0)
         {
             var rem = _buffer.ToString().Trim();
@@ -48,6 +60,12 @@ public sealed class A2uiParser
             {
                 events.AddRange(ParseLine(rem));
             }
+        }
+
+        if (_jsonCandidate.Length > 0)
+        {
+            events.Add(new ParseErrorEvent("E_PARSE_INCOMPLETE_JSON", "Incomplete JSON object at end of stream", _jsonCandidate.ToString()));
+            ResetCandidate();
         }
 
         return events;
@@ -76,30 +94,100 @@ public sealed class A2uiParser
 
     private IReadOnlyList<GenerationEvent> ParseLine(string line)
     {
-        line = line.Trim();
+        line = line.TrimEnd();
+        var trimmed = line.Trim();
 
-        if (line.StartsWith("```"))
+        if (trimmed.StartsWith("```"))
         {
             _inCodeFence = !_inCodeFence;
             return [];
         }
 
-        if (_inCodeFence && !line.StartsWith("{"))
+        if (_jsonCandidate.Length > 0)
+        {
+            return ContinueJsonCandidate(line);
+        }
+
+        if (trimmed.StartsWith("{"))
+        {
+            return StartJsonCandidate(line);
+        }
+
+        if (_inCodeFence && string.IsNullOrWhiteSpace(trimmed))
         {
             return [];
         }
 
-        if (!line.StartsWith("{"))
+        if (_inCodeFence)
         {
-            return [new TextEvent(line)];
+            return [new TextEvent(trimmed)];
         }
+
+        if (!trimmed.StartsWith("{"))
+        {
+            return [new TextEvent(trimmed)];
+        }
+        
+        return [];
+    }
+
+    private IReadOnlyList<GenerationEvent> StartJsonCandidate(string line)
+    {
+        _jsonCandidate.Clear();
+        _jsonBalance = 0;
+        _jsonInString = false;
+        _jsonEscape = false;
+        _jsonStarted = false;
+
+        _jsonCandidate.Append(line);
+        UpdateJsonState(line);
+
+        if (_jsonCandidate.Length > _options.MaxJsonCandidateChars)
+        {
+            ResetCandidate();
+            return [new ParseErrorEvent("E_PARSE_JSON_TOO_LARGE", "JSON payload exceeded max size", line)];
+        }
+
+        if (_jsonStarted && _jsonBalance == 0)
+        {
+            return ParseJsonCandidateAndReset();
+        }
+
+        return [];
+    }
+
+    private IReadOnlyList<GenerationEvent> ContinueJsonCandidate(string line)
+    {
+        _jsonCandidate.Append('\n');
+        _jsonCandidate.Append(line);
+        UpdateJsonState(line);
+
+        if (_jsonCandidate.Length > _options.MaxJsonCandidateChars)
+        {
+            var raw = _jsonCandidate.ToString();
+            ResetCandidate();
+            return [new ParseErrorEvent("E_PARSE_JSON_TOO_LARGE", "JSON payload exceeded max size", raw)];
+        }
+
+        if (_jsonStarted && _jsonBalance == 0)
+        {
+            return ParseJsonCandidateAndReset();
+        }
+
+        return [];
+    }
+
+    private IReadOnlyList<GenerationEvent> ParseJsonCandidateAndReset()
+    {
+        var raw = _jsonCandidate.ToString().Trim();
+        ResetCandidate();
 
         try
         {
-            var node = JsonNode.Parse(line) as JsonObject;
+            var node = JsonNode.Parse(raw) as JsonObject;
             if (node is null)
             {
-                return [new ParseErrorEvent("E_PARSE_LINE", "JSON line is not an object", line)];
+                return [new ParseErrorEvent("E_PARSE_LINE", "JSON payload is not an object", raw)];
             }
 
             var normalized = A2uiNormalizer.Normalize(node);
@@ -107,7 +195,62 @@ public sealed class A2uiParser
         }
         catch (Exception ex)
         {
-            return [new ParseErrorEvent("E_PARSE_LINE", ex.Message, line)];
+            return [new ParseErrorEvent("E_PARSE_LINE", ex.Message, raw)];
         }
     }
+
+    private void UpdateJsonState(string text)
+    {
+        foreach (var ch in text)
+        {
+            if (_jsonInString)
+            {
+                if (_jsonEscape)
+                {
+                    _jsonEscape = false;
+                    continue;
+                }
+
+                if (ch == '\\')
+                {
+                    _jsonEscape = true;
+                    continue;
+                }
+
+                if (ch == '"')
+                {
+                    _jsonInString = false;
+                }
+                continue;
+            }
+
+            if (ch == '"')
+            {
+                _jsonInString = true;
+                continue;
+            }
+
+            if (ch == '{')
+            {
+                _jsonStarted = true;
+                _jsonBalance++;
+                continue;
+            }
+
+            if (ch == '}')
+            {
+                _jsonBalance--;
+            }
+        }
+    }
+
+    private void ResetCandidate()
+    {
+        _jsonCandidate.Clear();
+        _jsonBalance = 0;
+        _jsonInString = false;
+        _jsonEscape = false;
+        _jsonStarted = false;
+    }
+
 }

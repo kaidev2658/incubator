@@ -9,70 +9,116 @@ public static class A2uiNormalizer
     public static NormalMessage Normalize(JsonObject raw)
     {
         var version = DetectVersion(raw);
+        if (version is not ("v0.9" or "v0.10"))
+        {
+            throw new JsonException($"E_UNSUPPORTED_VERSION: {version}");
+        }
 
         if (TryGetObject(raw, "createSurface", out var createSurface))
         {
+            var surfaceId = RequireSurfaceId(createSurface, "createSurface");
             return new NormalMessage(version, NormalMessageType.CreateSurface,
-                SurfaceId: createSurface["surfaceId"]?.GetValue<string>(),
+                SurfaceId: surfaceId,
                 Payload: createSurface.DeepClone() as JsonObject);
         }
 
         if (TryGetObject(raw, "updateComponents", out var updateComponents))
         {
+            var surfaceId = RequireSurfaceId(updateComponents, "updateComponents");
             return new NormalMessage(version, NormalMessageType.UpdateComponents,
-                SurfaceId: updateComponents["surfaceId"]?.GetValue<string>(),
+                SurfaceId: surfaceId,
                 Payload: updateComponents.DeepClone() as JsonObject);
         }
 
         if (TryGetObject(raw, "updateDataModel", out var updateDataModel))
         {
+            var surfaceId = RequireSurfaceId(updateDataModel, "updateDataModel");
             NormalizeDataModelDeleteSemantics(version, updateDataModel);
             return new NormalMessage(version, NormalMessageType.UpdateDataModel,
-                SurfaceId: updateDataModel["surfaceId"]?.GetValue<string>(),
+                SurfaceId: surfaceId,
                 Payload: updateDataModel.DeepClone() as JsonObject);
         }
 
         if (TryGetObject(raw, "deleteSurface", out var deleteSurface))
         {
+            var surfaceId = RequireSurfaceId(deleteSurface, "deleteSurface");
             return new NormalMessage(version, NormalMessageType.DeleteSurface,
-                SurfaceId: deleteSurface["surfaceId"]?.GetValue<string>(),
+                SurfaceId: surfaceId,
                 Payload: deleteSurface.DeepClone() as JsonObject);
         }
 
         if (TryGetObject(raw, "callFunction", out var callFunction))
         {
+            if (version != "v0.10")
+            {
+                throw new JsonException("E_UNSUPPORTED_MESSAGE_FOR_VERSION: callFunction requires v0.10");
+            }
+
+            var functionCallId = GetOptionalString(raw["functionCallId"]);
+            if (string.IsNullOrWhiteSpace(functionCallId))
+            {
+                throw new JsonException("E_FUNCTION_CALL_ID_REQUIRED: functionCallId is required");
+            }
+
             return new NormalMessage(version, NormalMessageType.CallFunction,
-                SurfaceId: callFunction["surfaceId"]?.GetValue<string>(),
-                FunctionCallId: raw["functionCallId"]?.GetValue<string>(),
+                SurfaceId: GetOptionalString(callFunction["surfaceId"]),
+                FunctionCallId: functionCallId,
                 Payload: callFunction.DeepClone() as JsonObject);
         }
 
         if (TryGetObject(raw, "functionResponse", out var functionResponse))
         {
+            if (version != "v0.10")
+            {
+                throw new JsonException("E_UNSUPPORTED_MESSAGE_FOR_VERSION: functionResponse requires v0.10");
+            }
+
+            var functionCallId = GetOptionalString(raw["functionCallId"]);
+            if (string.IsNullOrWhiteSpace(functionCallId))
+            {
+                throw new JsonException("E_FUNCTION_CALL_ID_REQUIRED: functionCallId is required");
+            }
+
+            if (!functionResponse.ContainsKey("value"))
+            {
+                throw new JsonException("E_FUNCTION_RESPONSE_VALUE_REQUIRED: value is required");
+            }
+
             return new NormalMessage(version, NormalMessageType.FunctionResponse,
-                SurfaceId: functionResponse["surfaceId"]?.GetValue<string>(),
-                FunctionCallId: raw["functionCallId"]?.GetValue<string>(),
+                SurfaceId: GetOptionalString(functionResponse["surfaceId"]),
+                FunctionCallId: functionCallId,
                 Payload: functionResponse.DeepClone() as JsonObject);
         }
 
         if (TryGetObject(raw, "error", out var error))
         {
             return new NormalMessage(version, NormalMessageType.Error,
-                SurfaceId: raw["surfaceId"]?.GetValue<string>(),
-                FunctionCallId: raw["functionCallId"]?.GetValue<string>(),
+                SurfaceId: GetOptionalString(raw["surfaceId"]),
+                FunctionCallId: GetOptionalString(raw["functionCallId"]),
                 Payload: error.DeepClone() as JsonObject);
         }
 
-        throw new JsonException("Unknown A2UI message shape.");
+        throw new JsonException("E_UNKNOWN_MESSAGE: Unknown A2UI message shape");
     }
 
     private static void NormalizeDataModelDeleteSemantics(string version, JsonObject updateDataModel)
     {
-        if (updateDataModel["patches"] is not JsonArray patches) return;
+        if (updateDataModel["patches"] is not JsonArray patches)
+        {
+            throw new JsonException("E_PATCHES_REQUIRED: patches array is required");
+        }
 
         foreach (var node in patches)
         {
-            if (node is not JsonObject patch) continue;
+            if (node is not JsonObject patch)
+            {
+                throw new JsonException("E_PATCH_INVALID: patch must be an object");
+            }
+
+            if (patch["path"] is not JsonArray path || path.Count == 0)
+            {
+                throw new JsonException("E_PATCH_PATH_REQUIRED: patch path must be non-empty array");
+            }
 
             if (version == "v0.9")
             {
@@ -125,5 +171,23 @@ public static class A2uiNormalizer
         if (v is "0.9" or "v0.9") return "v0.9";
         if (v is "0.10" or "v0.10") return "v0.10";
         return v.StartsWith('v') ? v : $"v{v}";
+    }
+
+    private static string RequireSurfaceId(JsonObject node, string messageType)
+    {
+        var surfaceId = GetOptionalString(node["surfaceId"]);
+        if (string.IsNullOrWhiteSpace(surfaceId))
+        {
+            throw new JsonException($"E_SURFACE_ID_REQUIRED: surfaceId is required for {messageType}");
+        }
+
+        return surfaceId;
+    }
+
+    private static string? GetOptionalString(JsonNode? node)
+    {
+        if (node is null) return null;
+        if (node is JsonValue value && value.TryGetValue<string>(out var str)) return str;
+        return null;
     }
 }

@@ -6,15 +6,25 @@ namespace TizenA2uiRenderer.Controller;
 public sealed class ControllerOptions
 {
     public TimeSpan PendingTtl { get; init; } = TimeSpan.FromSeconds(60);
+    public int MaxPendingPerSurface { get; init; } = 100;
 }
 
 public sealed class SurfaceController
 {
+    private readonly ControllerOptions _options;
+    private readonly Func<DateTimeOffset> _utcNow;
     private readonly Dictionary<string, SurfaceDefinition> _surfaces = new();
     private readonly Dictionary<string, DataModel> _dataModels = new();
+    private readonly Dictionary<string, Queue<PendingUpdate>> _pending = new();
 
     public event Action<SurfaceUpdate>? SurfaceUpdated;
     public event Action<A2uiError>? Error;
+
+    public SurfaceController(ControllerOptions? options = null, Func<DateTimeOffset>? utcNow = null)
+    {
+        _options = options ?? new ControllerOptions();
+        _utcNow = utcNow ?? (() => DateTimeOffset.UtcNow);
+    }
 
     public void HandleMessage(NormalMessage message)
     {
@@ -63,6 +73,7 @@ public sealed class SurfaceController
 
         _surfaces[surfaceId] = new SurfaceDefinition(surfaceId, rootId, (JsonObject)components.DeepClone());
         _dataModels.TryAdd(surfaceId, new DataModel());
+        ApplyPending(surfaceId);
         PublishSurface(surfaceId);
     }
 
@@ -77,7 +88,7 @@ public sealed class SurfaceController
 
         if (!_surfaces.TryGetValue(surfaceId, out var current))
         {
-            Error?.Invoke(new A2uiError("E_SURFACE_NOT_FOUND", $"surface '{surfaceId}' not found.", surfaceId));
+            EnqueuePending(surfaceId, message);
             return;
         }
 
@@ -110,7 +121,7 @@ public sealed class SurfaceController
 
         if (!_surfaces.ContainsKey(surfaceId))
         {
-            Error?.Invoke(new A2uiError("E_SURFACE_NOT_FOUND", $"surface '{surfaceId}' not found.", surfaceId));
+            EnqueuePending(surfaceId, message);
             return;
         }
 
@@ -150,6 +161,7 @@ public sealed class SurfaceController
         if (string.IsNullOrWhiteSpace(surfaceId)) return;
         _surfaces.Remove(surfaceId);
         _dataModels.Remove(surfaceId);
+        _pending.Remove(surfaceId);
     }
 
     private void PublishSurface(string surfaceId)
@@ -158,4 +170,66 @@ public sealed class SurfaceController
         var model = _dataModels.GetValueOrDefault(surfaceId) ?? new DataModel();
         SurfaceUpdated?.Invoke(new SurfaceUpdate(surfaceId, definition, model));
     }
+
+    private void EnqueuePending(string surfaceId, NormalMessage message)
+    {
+        if (!_pending.TryGetValue(surfaceId, out var queue))
+        {
+            queue = new Queue<PendingUpdate>();
+            _pending[surfaceId] = queue;
+        }
+
+        while (queue.Count > 0 && IsExpired(queue.Peek()))
+        {
+            queue.Dequeue();
+        }
+
+        if (queue.Count >= _options.MaxPendingPerSurface)
+        {
+            Error?.Invoke(new A2uiError("E_PENDING_OVERFLOW", $"pending queue overflow for surface '{surfaceId}'", surfaceId));
+            return;
+        }
+
+        queue.Enqueue(new PendingUpdate(message, _utcNow()));
+    }
+
+    private void ApplyPending(string surfaceId)
+    {
+        if (!_pending.TryGetValue(surfaceId, out var queue))
+        {
+            return;
+        }
+
+        var replay = new List<NormalMessage>();
+        while (queue.Count > 0)
+        {
+            var pending = queue.Dequeue();
+            if (IsExpired(pending))
+            {
+                Error?.Invoke(new A2uiError("E_PENDING_EXPIRED", $"pending update expired for surface '{surfaceId}'", surfaceId));
+                continue;
+            }
+
+            replay.Add(pending.Message);
+        }
+
+        _pending.Remove(surfaceId);
+        foreach (var msg in replay)
+        {
+            switch (msg.Type)
+            {
+                case NormalMessageType.UpdateComponents:
+                    HandleUpdateComponents(msg);
+                    break;
+                case NormalMessageType.UpdateDataModel:
+                    HandleUpdateDataModel(msg);
+                    break;
+            }
+        }
+    }
+
+    private bool IsExpired(PendingUpdate pending)
+        => _utcNow() - pending.EnqueueTime > _options.PendingTtl;
+
+    private sealed record PendingUpdate(NormalMessage Message, DateTimeOffset EnqueueTime);
 }
