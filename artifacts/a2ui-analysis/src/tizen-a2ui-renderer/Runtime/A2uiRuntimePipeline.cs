@@ -155,7 +155,7 @@ public sealed class A2uiRuntimePipeline : IDisposable
         catch (Exception ex)
         {
             var message = $"runtime adapter {operation.ToString().ToLowerInvariant()} failed for surface '{surfaceId}'.";
-            var runtimeError = new A2uiError(ErrorCodes.RenderFailed, message, surfaceId);
+            var runtimeError = new A2uiError(ErrorCodes.RuntimeOperationFailed, message, surfaceId);
 
             _logger.Error(
                 message,
@@ -166,7 +166,8 @@ public sealed class A2uiRuntimePipeline : IDisposable
                     message: runtimeError.Message,
                     surfaceId: surfaceId,
                     operation: operation.ToString().ToLowerInvariant(),
-                    adapterType: _runtimeAdapter.GetType().Name));
+                    adapterType: _runtimeAdapter.GetType().Name,
+                    bridgeType: GetBridgeType()));
             ControllerError?.Invoke(runtimeError);
 
             if (_options.ThrowOnRuntimeAdapterError)
@@ -184,11 +185,14 @@ public sealed class A2uiRuntimePipeline : IDisposable
         string? functionCallId = null,
         string? operation = null,
         string? adapterType = null,
+        string? bridgeType = null,
         string? rawLine = null)
     {
         return new Dictionary<string, object?>
         {
             [StructuredLogFields.Source] = source,
+            [StructuredLogFields.ErrorComponent] = ErrorCodes.ClassifyComponent(code),
+            [StructuredLogFields.ErrorKind] = ErrorCodes.ClassifyKind(code),
             [StructuredLogFields.ErrorCode] = code,
             [StructuredLogFields.ErrorMessage] = message,
             [StructuredLogFields.SurfaceId] = surfaceId,
@@ -196,7 +200,11 @@ public sealed class A2uiRuntimePipeline : IDisposable
             [StructuredLogFields.Operation] = operation,
             [StructuredLogFields.IntegrationPath] = _options.IntegrationPath,
             [StructuredLogFields.AdapterType] = adapterType,
+            [StructuredLogFields.BridgeType] = bridgeType,
             [StructuredLogFields.RawLine] = rawLine
         };
     }
+
+    private string? GetBridgeType()
+        => _runtimeAdapter is RendererBridgeRuntimeAdapter bridge ? bridge.BridgeTypeName : null;
 }

@@ -46,6 +46,7 @@ public static class ErrorCodes
     // Render
     public const string FunctionCallFailed = "E_FUNCTION_CALL_FAILED";
     public const string RenderFailed = "E_RENDER_FAILED";
+    public const string RuntimeOperationFailed = "E_RUNTIME_OPERATION_FAILED";
     public const string RuntimeAdapterNotConfigured = "E_RUNTIME_ADAPTER_NOT_CONFIGURED";
     public const string RuntimeAdapterIntegrationInvalid = "E_RUNTIME_ADAPTER_INTEGRATION_INVALID";
 
@@ -80,4 +81,41 @@ public static class ErrorCodes
 
         return true;
     }
+
+    public static string ClassifyComponent(string code)
+        => code switch
+        {
+            ParseLine or ParseOverflow or ParseJsonTooLarge or ParseIncompleteJson => "parser",
+            UnsupportedVersion or UnsupportedMessageForVersion or UnknownMessage or PatchInvalid
+                or PatchPathRequired or PatchesRequired or ComponentsRequired or SurfaceIdRequired
+                or FunctionCallIdRequired or FunctionResponseValueRequired => "normalizer",
+            Controller or SurfaceNotFound or SurfaceDeleted or SurfaceAlreadyExists or SurfaceAlreadyDeleted
+                or PendingOverflow or PendingExpired or FunctionNameRequired or FunctionCallDuplicate
+                or FunctionRetryTargetMissing or FunctionRetryInvalidState or FunctionCancelTargetMissing
+                or FunctionCancelInvalidState or FunctionCancelled or FunctionResponseOrphan
+                or FunctionResponseLate or FunctionSurfaceMismatch or FunctionTimeout
+                or FunctionStateTransitionInvalid => "controller",
+            FunctionCallFailed or RenderFailed or RuntimeOperationFailed
+                or RuntimeAdapterNotConfigured or RuntimeAdapterIntegrationInvalid => "runtime",
+            _ => "unknown"
+        };
+
+    public static string ClassifyKind(string code)
+        => code switch
+        {
+            ParseLine or ParseOverflow or ParseJsonTooLarge or ParseIncompleteJson => "parse",
+            UnsupportedVersion or UnsupportedMessageForVersion or UnknownMessage or PatchInvalid
+                or PatchPathRequired or PatchesRequired or ComponentsRequired or SurfaceIdRequired
+                or FunctionCallIdRequired or FunctionResponseValueRequired => "validation",
+            SurfaceNotFound or SurfaceDeleted or SurfaceAlreadyExists or SurfaceAlreadyDeleted
+                or FunctionCallDuplicate or FunctionRetryTargetMissing or FunctionRetryInvalidState
+                or FunctionCancelTargetMissing or FunctionCancelInvalidState or FunctionResponseOrphan
+                or FunctionResponseLate or FunctionSurfaceMismatch or FunctionStateTransitionInvalid => "state",
+            PendingOverflow or PendingExpired or FunctionTimeout => "resilience",
+            FunctionCancelled => "control_flow",
+            FunctionCallFailed or RenderFailed or RuntimeOperationFailed => "runtime_operation",
+            RuntimeAdapterNotConfigured or RuntimeAdapterIntegrationInvalid => "integration",
+            Controller => "internal",
+            _ => "unknown"
+        };
 }

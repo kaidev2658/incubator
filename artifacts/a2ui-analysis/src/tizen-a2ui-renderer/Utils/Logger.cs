@@ -11,6 +11,8 @@ public interface ILogger
 public static class StructuredLogFields
 {
     public const string Source = "source";
+    public const string ErrorComponent = "error_component";
+    public const string ErrorKind = "error_kind";
     public const string ErrorCode = "error_code";
     public const string ErrorMessage = "error_message";
     public const string SurfaceId = "surface_id";
@@ -18,6 +20,7 @@ public static class StructuredLogFields
     public const string Operation = "operation";
     public const string IntegrationPath = "integration_path";
     public const string AdapterType = "adapter_type";
+    public const string BridgeType = "bridge_type";
     public const string RawLine = "raw_line";
 }
 

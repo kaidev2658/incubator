@@ -121,19 +121,26 @@ public class RuntimePipelineTests
         Assert.Contains(logger.Errors, entry =>
             entry.Fields.TryGetValue(StructuredLogFields.Source, out var source)
             && source?.ToString() == "transport.parse"
-            && entry.Fields[StructuredLogFields.ErrorCode]?.ToString() == ErrorCodes.ParseLine);
+            && entry.Fields[StructuredLogFields.ErrorCode]?.ToString() == ErrorCodes.ParseLine
+            && entry.Fields[StructuredLogFields.ErrorComponent]?.ToString() == "parser"
+            && entry.Fields[StructuredLogFields.ErrorKind]?.ToString() == "parse");
 
         Assert.Contains(logger.Errors, entry =>
             entry.Fields.TryGetValue(StructuredLogFields.Source, out var source)
             && source?.ToString() == "controller"
-            && entry.Fields[StructuredLogFields.ErrorCode]?.ToString() == ErrorCodes.SurfaceNotFound);
+            && entry.Fields[StructuredLogFields.ErrorCode]?.ToString() == ErrorCodes.SurfaceNotFound
+            && entry.Fields[StructuredLogFields.ErrorComponent]?.ToString() == "controller"
+            && entry.Fields[StructuredLogFields.ErrorKind]?.ToString() == "state");
 
         Assert.Contains(logger.Errors, entry =>
             entry.Fields.TryGetValue(StructuredLogFields.Source, out var source)
             && source?.ToString() == "runtime.adapter"
-            && entry.Fields[StructuredLogFields.ErrorCode]?.ToString() == ErrorCodes.RenderFailed
+            && entry.Fields[StructuredLogFields.ErrorCode]?.ToString() == ErrorCodes.RuntimeOperationFailed
+            && entry.Fields[StructuredLogFields.ErrorComponent]?.ToString() == "runtime"
+            && entry.Fields[StructuredLogFields.ErrorKind]?.ToString() == "runtime_operation"
             && entry.Fields.ContainsKey(StructuredLogFields.Operation)
             && entry.Fields.ContainsKey(StructuredLogFields.AdapterType)
+            && entry.Fields.ContainsKey(StructuredLogFields.BridgeType)
             && entry.Fields.ContainsKey(StructuredLogFields.IntegrationPath));
     }
 
@@ -203,6 +210,182 @@ public class RuntimePipelineTests
         Assert.Contains(errors, e => e.Code == "E_FUNCTION_CANCELLED" && e.FunctionCallId == "fn-cancel");
         Assert.Contains(errors, e => e.Code == "E_FUNCTION_RESPONSE_LATE" && e.FunctionCallId == "fn-cancel");
         Assert.NotEmpty(adapter.Operations);
+    }
+
+    [Fact]
+    public void Pipeline_Resilience_Long_Stream_Malformed_Cancel_And_Late_Response()
+    {
+        var adapter = new InMemoryRuntimeAdapter();
+        using var pipeline = new A2uiRuntimePipeline(runtimeAdapter: adapter);
+        var parseErrors = new List<ParseErrorEvent>();
+        var controllerErrors = new List<A2uiError>();
+
+        pipeline.ParseError += parseErrors.Add;
+        pipeline.ControllerError += controllerErrors.Add;
+
+        var lines = new List<string>
+        {
+            """{"version":"v0.10","createSurface":{"surfaceId":"main","root":"root","components":{"root":{"component":"Column"}}}}"""
+        };
+
+        for (var i = 0; i < 1_500; i++)
+        {
+            lines.Add($"{{\"version\":\"v0.10\",\"updateDataModel\":{{\"surfaceId\":\"main\",\"patches\":[{{\"path\":[\"counter\"],\"value\":{i}}}]}}}}");
+            if (i % 200 == 0)
+            {
+                lines.Add("{invalid}");
+            }
+        }
+
+        lines.Add("""{"version":"v0.10","functionCallId":"fn-composite","callFunction":{"surfaceId":"main","name":"confirm"}}""");
+        lines.Add("""{"version":"v0.10","functionCallId":"fn-composite","callFunction":{"surfaceId":"main","cancel":true}}""");
+        lines.Add("""{"version":"v0.10","functionCallId":"fn-composite","functionResponse":{"surfaceId":"main","value":{"ok":true}}}""");
+        lines.Add("""{"version":"v0.10","updateDataModel":{"surfaceId":"main","patches":[{"path":["postCancel"],"value":"applied"}]}}""");
+        lines.Add("{\"version\":\"v0.10\",\"updateDataModel\":{");
+
+        var payload = string.Join('\n', lines) + "\n";
+        FeedInChunks(pipeline, payload, [5, 3, 11, 2, 17, 7, 13]);
+        pipeline.Flush();
+
+        Assert.Contains(parseErrors, e => e.Code == ErrorCodes.ParseLine);
+        Assert.Contains(parseErrors, e => e.Code == ErrorCodes.ParseIncompleteJson);
+        Assert.Contains(controllerErrors, e => e.Code == ErrorCodes.FunctionCancelled && e.FunctionCallId == "fn-composite");
+        Assert.Contains(controllerErrors, e => e.Code == ErrorCodes.FunctionResponseLate && e.FunctionCallId == "fn-composite");
+
+        Assert.Equal(1_502, adapter.Operations.Count);
+        var last = adapter.Operations[^1];
+        Assert.Equal("applied", last.DataModel!["postCancel"]!.GetValue<string>());
+        Assert.Equal(1_499, last.DataModel!["counter"]!.GetValue<int>());
+    }
+
+    [Fact]
+    public void Pipeline_Resilience_Long_Stream_Delete_Cancel_Late_Response_And_Recreate()
+    {
+        var adapter = new InMemoryRuntimeAdapter();
+        using var pipeline = new A2uiRuntimePipeline(runtimeAdapter: adapter);
+        var parseErrors = new List<ParseErrorEvent>();
+        var controllerErrors = new List<A2uiError>();
+
+        pipeline.ParseError += parseErrors.Add;
+        pipeline.ControllerError += controllerErrors.Add;
+
+        var lines = new List<string>
+        {
+            """{"version":"v0.10","createSurface":{"surfaceId":"main","root":"root","components":{"root":{"component":"Column"}}}}""",
+            """{"version":"v0.10","functionCallId":"fn-delete","callFunction":{"surfaceId":"main","name":"longTask"}}"""
+        };
+
+        for (var i = 0; i < 900; i++)
+        {
+            lines.Add($"{{\"version\":\"v0.10\",\"updateDataModel\":{{\"surfaceId\":\"main\",\"patches\":[{{\"path\":[\"beforeDelete\"],\"value\":{i}}}]}}}}");
+            if (i % 180 == 0)
+            {
+                lines.Add("{invalid}");
+            }
+        }
+
+        lines.Add("""{"version":"v0.10","deleteSurface":{"surfaceId":"main"}}""");
+        lines.Add("""{"version":"v0.10","functionCallId":"fn-delete","functionResponse":{"surfaceId":"main","value":{"ok":true}}}""");
+        lines.Add("""{"version":"v0.10","createSurface":{"surfaceId":"main","root":"root","components":{"root":{"component":"Column"}}}}""");
+
+        for (var i = 0; i < 400; i++)
+        {
+            lines.Add($"{{\"version\":\"v0.10\",\"updateDataModel\":{{\"surfaceId\":\"main\",\"patches\":[{{\"path\":[\"afterRecreate\"],\"value\":{i}}}]}}}}");
+        }
+
+        lines.Add("""{"version":"v0.10","functionCallId":"fn-recreate","callFunction":{"surfaceId":"main","name":"confirm"}}""");
+        lines.Add("""{"version":"v0.10","functionCallId":"fn-recreate","callFunction":{"surfaceId":"main","cancel":true}}""");
+        lines.Add("""{"version":"v0.10","functionCallId":"fn-recreate","functionResponse":{"surfaceId":"main","value":{"ok":false}}}""");
+
+        var payload = string.Join('\n', lines) + "\n";
+        FeedInChunks(pipeline, payload, [4, 9, 6, 15, 3, 10, 2]);
+        pipeline.Flush();
+
+        Assert.Contains(parseErrors, e => e.Code == ErrorCodes.ParseLine);
+        Assert.Contains(controllerErrors, e => e.Code == ErrorCodes.FunctionCancelled && e.FunctionCallId == "fn-delete");
+        Assert.Contains(controllerErrors, e => e.Code == ErrorCodes.FunctionResponseLate && e.FunctionCallId == "fn-delete");
+        Assert.Contains(controllerErrors, e => e.Code == ErrorCodes.FunctionCancelled && e.FunctionCallId == "fn-recreate");
+        Assert.Contains(controllerErrors, e => e.Code == ErrorCodes.FunctionResponseLate && e.FunctionCallId == "fn-recreate");
+
+        var removeCount = adapter.Operations.Count(op => op.Type == RuntimeOperationType.Remove);
+        Assert.Equal(1, removeCount);
+        var last = adapter.Operations[^1];
+        Assert.Equal(399, last.DataModel!["afterRecreate"]!.GetValue<int>());
+    }
+
+    [Fact]
+    public void Pipeline_Resilience_Long_Stream_Malformed_Timeout_Cancel_And_Late_Response_Mix()
+    {
+        var now = DateTimeOffset.UtcNow;
+        var controller = new SurfaceController(new ControllerOptions
+        {
+            FunctionPendingTtl = TimeSpan.FromSeconds(10)
+        }, () => now);
+        var adapter = new InMemoryRuntimeAdapter();
+        using var pipeline = new A2uiRuntimePipeline(controller: controller, runtimeAdapter: adapter);
+        var parseErrors = new List<ParseErrorEvent>();
+        var controllerErrors = new List<A2uiError>();
+
+        pipeline.ParseError += parseErrors.Add;
+        pipeline.ControllerError += controllerErrors.Add;
+
+        var lines = new List<string>
+        {
+            """{"version":"v0.10","createSurface":{"surfaceId":"main","root":"root","components":{"root":{"component":"Column"}}}}"""
+        };
+
+        for (var i = 0; i < 1_200; i++)
+        {
+            lines.Add($"{{\"version\":\"v0.10\",\"updateDataModel\":{{\"surfaceId\":\"main\",\"patches\":[{{\"path\":[\"stream\"],\"value\":{i}}}]}}}}");
+            if (i % 240 == 0)
+            {
+                lines.Add("{oops}");
+            }
+        }
+
+        var payload = string.Join('\n', lines) + "\n";
+        FeedInChunks(pipeline, payload, [8, 1, 12, 4, 16, 5]);
+
+        pipeline.AddMessage(new NormalMessage(
+            "v0.10",
+            NormalMessageType.CallFunction,
+            "main",
+            "fn-timeout",
+            JsonSerializer.Deserialize<JsonElement>("""{"surfaceId":"main","name":"slowOp"}""").DeserializeAsObject()));
+        now = now.AddSeconds(30);
+        pipeline.AddMessage(UpdateData("main", "postTimeoutTick", 1));
+        pipeline.AddMessage(new NormalMessage(
+            "v0.10",
+            NormalMessageType.FunctionResponse,
+            "main",
+            "fn-timeout",
+            JsonSerializer.Deserialize<JsonElement>("""{"surfaceId":"main","value":{"ok":true}}""").DeserializeAsObject()));
+
+        pipeline.AddMessage(new NormalMessage(
+            "v0.10",
+            NormalMessageType.CallFunction,
+            "main",
+            "fn-cancel-2",
+            JsonSerializer.Deserialize<JsonElement>("""{"surfaceId":"main","name":"cancelMe"}""").DeserializeAsObject()));
+        pipeline.AddMessage(new NormalMessage(
+            "v0.10",
+            NormalMessageType.CallFunction,
+            "main",
+            "fn-cancel-2",
+            JsonSerializer.Deserialize<JsonElement>("""{"surfaceId":"main","cancel":true}""").DeserializeAsObject()));
+        pipeline.AddMessage(new NormalMessage(
+            "v0.10",
+            NormalMessageType.FunctionResponse,
+            "main",
+            "fn-cancel-2",
+            JsonSerializer.Deserialize<JsonElement>("""{"surfaceId":"main","value":{"ok":false}}""").DeserializeAsObject()));
+
+        Assert.Contains(parseErrors, e => e.Code == ErrorCodes.ParseLine);
+        Assert.Contains(controllerErrors, e => e.Code == ErrorCodes.FunctionTimeout && e.FunctionCallId == "fn-timeout");
+        Assert.Contains(controllerErrors, e => e.Code == ErrorCodes.FunctionResponseLate && e.FunctionCallId == "fn-timeout");
+        Assert.Contains(controllerErrors, e => e.Code == ErrorCodes.FunctionCancelled && e.FunctionCallId == "fn-cancel-2");
+        Assert.Contains(controllerErrors, e => e.Code == ErrorCodes.FunctionResponseLate && e.FunctionCallId == "fn-cancel-2");
+        Assert.True(adapter.Operations.Count >= 1_202);
     }
 
     private static void FeedInChunks(A2uiRuntimePipeline pipeline, string text, int[] chunkSizes)
