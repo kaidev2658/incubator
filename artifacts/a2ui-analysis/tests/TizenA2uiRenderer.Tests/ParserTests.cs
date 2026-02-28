@@ -1,6 +1,6 @@
-using Xunit;
 using TizenA2uiRenderer.Model;
 using TizenA2uiRenderer.Transport;
+using Xunit;
 
 namespace TizenA2uiRenderer.Tests;
 
@@ -124,5 +124,16 @@ public class ParserTests
         Assert.Equal(NormalMessageType.UpdateDataModel, messages[1].Type);
         Assert.Contains(errors, e => e.Code == "E_PARSE_LINE");
         Assert.Contains(errors, e => e.Code == "E_PARSE_INCOMPLETE_JSON");
+    }
+
+    [Fact]
+    public void Parser_Maps_Normalizer_Error_Code_Without_Collapsing_To_Parse_Line()
+    {
+        var parser = new A2uiParser();
+
+        var events = parser.AddChunk("{\"version\":\"v0.10\",\"createSurface\":{\"root\":\"r\",\"components\":{\"r\":{\"component\":\"Text\"}}}}\n");
+
+        var error = Assert.IsType<ParseErrorEvent>(Assert.Single(events));
+        Assert.Equal("E_SURFACE_ID_REQUIRED", error.Code);
     }
 }

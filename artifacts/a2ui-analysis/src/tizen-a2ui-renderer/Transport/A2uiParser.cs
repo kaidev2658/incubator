@@ -2,6 +2,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using TizenA2uiRenderer.Model;
+using TizenA2uiRenderer.Utils;
 
 namespace TizenA2uiRenderer.Transport;
 
@@ -35,7 +36,7 @@ public sealed class A2uiParser
         if (_buffer.Length > _options.MaxBufferChars)
         {
             _buffer.Clear();
-            return [new ParseErrorEvent("E_PARSE_OVERFLOW", "Parser buffer overflow")];
+            return [new ParseErrorEvent(ErrorCodes.ParseOverflow, "Parser buffer overflow")];
         }
 
         return DrainCompleteLines();
@@ -48,7 +49,7 @@ public sealed class A2uiParser
 
         if (_jsonCandidate.Length > 0)
         {
-            events.Add(new ParseErrorEvent("E_PARSE_INCOMPLETE_JSON", "Incomplete JSON object at end of stream", _jsonCandidate.ToString()));
+            events.Add(new ParseErrorEvent(ErrorCodes.ParseIncompleteJson, "Incomplete JSON object at end of stream", _jsonCandidate.ToString()));
             ResetCandidate();
         }
 
@@ -64,7 +65,7 @@ public sealed class A2uiParser
 
         if (_jsonCandidate.Length > 0)
         {
-            events.Add(new ParseErrorEvent("E_PARSE_INCOMPLETE_JSON", "Incomplete JSON object at end of stream", _jsonCandidate.ToString()));
+            events.Add(new ParseErrorEvent(ErrorCodes.ParseIncompleteJson, "Incomplete JSON object at end of stream", _jsonCandidate.ToString()));
             ResetCandidate();
         }
 
@@ -84,7 +85,9 @@ public sealed class A2uiParser
             _buffer.Remove(0, idx + 1);
 
             if (string.IsNullOrWhiteSpace(line))
+            {
                 continue;
+            }
 
             events.AddRange(ParseLine(line));
         }
@@ -97,7 +100,7 @@ public sealed class A2uiParser
         line = line.TrimEnd();
         var trimmed = line.Trim();
 
-        if (trimmed.StartsWith("```"))
+        if (trimmed.StartsWith("```", StringComparison.Ordinal))
         {
             _inCodeFence = !_inCodeFence;
             return [];
@@ -108,7 +111,7 @@ public sealed class A2uiParser
             return ContinueJsonCandidate(line);
         }
 
-        if (trimmed.StartsWith("{"))
+        if (trimmed.StartsWith("{", StringComparison.Ordinal))
         {
             return StartJsonCandidate(line);
         }
@@ -123,11 +126,11 @@ public sealed class A2uiParser
             return [new TextEvent(trimmed)];
         }
 
-        if (!trimmed.StartsWith("{"))
+        if (!trimmed.StartsWith("{", StringComparison.Ordinal))
         {
             return [new TextEvent(trimmed)];
         }
-        
+
         return [];
     }
 
@@ -145,7 +148,7 @@ public sealed class A2uiParser
         if (_jsonCandidate.Length > _options.MaxJsonCandidateChars)
         {
             ResetCandidate();
-            return [new ParseErrorEvent("E_PARSE_JSON_TOO_LARGE", "JSON payload exceeded max size", line)];
+            return [new ParseErrorEvent(ErrorCodes.ParseJsonTooLarge, "JSON payload exceeded max size", line)];
         }
 
         if (_jsonStarted && _jsonBalance == 0)
@@ -166,7 +169,7 @@ public sealed class A2uiParser
         {
             var raw = _jsonCandidate.ToString();
             ResetCandidate();
-            return [new ParseErrorEvent("E_PARSE_JSON_TOO_LARGE", "JSON payload exceeded max size", raw)];
+            return [new ParseErrorEvent(ErrorCodes.ParseJsonTooLarge, "JSON payload exceeded max size", raw)];
         }
 
         if (_jsonStarted && _jsonBalance == 0)
@@ -187,7 +190,7 @@ public sealed class A2uiParser
             var node = JsonNode.Parse(raw) as JsonObject;
             if (node is null)
             {
-                return [new ParseErrorEvent("E_PARSE_LINE", "JSON payload is not an object", raw)];
+                return [new ParseErrorEvent(ErrorCodes.ParseLine, "JSON payload is not an object", raw)];
             }
 
             var normalized = A2uiNormalizer.Normalize(node);
@@ -195,8 +198,18 @@ public sealed class A2uiParser
         }
         catch (Exception ex)
         {
-            return [new ParseErrorEvent("E_PARSE_LINE", ex.Message, raw)];
+            return [MapException(ex, raw)];
         }
+    }
+
+    private static ParseErrorEvent MapException(Exception ex, string raw)
+    {
+        if (ex is JsonException && ErrorCodes.TryExtractCodePrefix(ex.Message, out var code, out var detail))
+        {
+            return new ParseErrorEvent(code, detail, raw);
+        }
+
+        return new ParseErrorEvent(ErrorCodes.ParseLine, ex.Message, raw);
     }
 
     private void UpdateJsonState(string text)
@@ -252,5 +265,4 @@ public sealed class A2uiParser
         _jsonEscape = false;
         _jsonStarted = false;
     }
-
 }

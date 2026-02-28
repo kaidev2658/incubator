@@ -1,6 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using TizenA2uiRenderer.Model;
+using TizenA2uiRenderer.Utils;
 
 namespace TizenA2uiRenderer.Transport;
 
@@ -11,7 +12,7 @@ public static class A2uiNormalizer
         var version = DetectVersion(raw);
         if (version is not ("v0.9" or "v0.10"))
         {
-            throw new JsonException($"E_UNSUPPORTED_VERSION: {version}");
+            throw NormalizerError(ErrorCodes.UnsupportedVersion, $"unsupported version '{version}'");
         }
 
         if (TryGetObject(raw, "createSurface", out var createSurface))
@@ -51,13 +52,13 @@ public static class A2uiNormalizer
         {
             if (version != "v0.10")
             {
-                throw new JsonException("E_UNSUPPORTED_MESSAGE_FOR_VERSION: callFunction requires v0.10");
+                throw NormalizerError(ErrorCodes.UnsupportedMessageForVersion, "callFunction requires v0.10");
             }
 
             var functionCallId = GetOptionalString(raw["functionCallId"]);
             if (string.IsNullOrWhiteSpace(functionCallId))
             {
-                throw new JsonException("E_FUNCTION_CALL_ID_REQUIRED: functionCallId is required");
+                throw NormalizerError(ErrorCodes.FunctionCallIdRequired, "functionCallId is required");
             }
 
             return new NormalMessage(version, NormalMessageType.CallFunction,
@@ -70,18 +71,18 @@ public static class A2uiNormalizer
         {
             if (version != "v0.10")
             {
-                throw new JsonException("E_UNSUPPORTED_MESSAGE_FOR_VERSION: functionResponse requires v0.10");
+                throw NormalizerError(ErrorCodes.UnsupportedMessageForVersion, "functionResponse requires v0.10");
             }
 
             var functionCallId = GetOptionalString(raw["functionCallId"]);
             if (string.IsNullOrWhiteSpace(functionCallId))
             {
-                throw new JsonException("E_FUNCTION_CALL_ID_REQUIRED: functionCallId is required");
+                throw NormalizerError(ErrorCodes.FunctionCallIdRequired, "functionCallId is required");
             }
 
             if (!functionResponse.ContainsKey("value"))
             {
-                throw new JsonException("E_FUNCTION_RESPONSE_VALUE_REQUIRED: value is required");
+                throw NormalizerError(ErrorCodes.FunctionResponseValueRequired, "value is required");
             }
 
             return new NormalMessage(version, NormalMessageType.FunctionResponse,
@@ -98,26 +99,26 @@ public static class A2uiNormalizer
                 Payload: error.DeepClone() as JsonObject);
         }
 
-        throw new JsonException("E_UNKNOWN_MESSAGE: Unknown A2UI message shape");
+        throw NormalizerError(ErrorCodes.UnknownMessage, "unknown A2UI message shape");
     }
 
     private static void NormalizeDataModelDeleteSemantics(string version, JsonObject updateDataModel)
     {
         if (updateDataModel["patches"] is not JsonArray patches)
         {
-            throw new JsonException("E_PATCHES_REQUIRED: patches array is required");
+            throw NormalizerError(ErrorCodes.PatchesRequired, "patches array is required");
         }
 
         foreach (var node in patches)
         {
             if (node is not JsonObject patch)
             {
-                throw new JsonException("E_PATCH_INVALID: patch must be an object");
+                throw NormalizerError(ErrorCodes.PatchInvalid, "patch must be an object");
             }
 
             if (patch["path"] is not JsonArray path || path.Count == 0)
             {
-                throw new JsonException("E_PATCH_PATH_REQUIRED: patch path must be non-empty array");
+                throw NormalizerError(ErrorCodes.PatchPathRequired, "patch path must be non-empty array");
             }
 
             if (version == "v0.9")
@@ -156,7 +157,6 @@ public static class A2uiNormalizer
             return NormalizeVersion(explicitVersion);
         }
 
-        // Heuristic fallback
         if (raw.ContainsKey("callFunction") || raw.ContainsKey("functionResponse"))
         {
             return "v0.10";
@@ -178,11 +178,14 @@ public static class A2uiNormalizer
         var surfaceId = GetOptionalString(node["surfaceId"]);
         if (string.IsNullOrWhiteSpace(surfaceId))
         {
-            throw new JsonException($"E_SURFACE_ID_REQUIRED: surfaceId is required for {messageType}");
+            throw NormalizerError(ErrorCodes.SurfaceIdRequired, $"surfaceId is required for {messageType}");
         }
 
         return surfaceId;
     }
+
+    private static JsonException NormalizerError(string code, string message)
+        => new($"{code}: {message}");
 
     private static string? GetOptionalString(JsonNode? node)
     {

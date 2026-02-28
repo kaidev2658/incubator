@@ -1,5 +1,6 @@
 using System.Text.Json.Nodes;
 using TizenA2uiRenderer.Model;
+using TizenA2uiRenderer.Utils;
 
 namespace TizenA2uiRenderer.Controller;
 
@@ -18,13 +19,22 @@ public sealed class SurfaceController
         Deleted
     }
 
+    private enum FunctionCallState
+    {
+        Pending,
+        RetryScheduled,
+        Cancelled,
+        Completed,
+        TimedOut
+    }
+
     private readonly ControllerOptions _options;
     private readonly Func<DateTimeOffset> _utcNow;
     private readonly Dictionary<string, SurfaceDefinition> _surfaces = new();
     private readonly Dictionary<string, DataModel> _dataModels = new();
     private readonly Dictionary<string, Queue<PendingUpdate>> _pending = new();
     private readonly Dictionary<string, SurfaceState> _surfaceStates = new();
-    private readonly Dictionary<string, PendingFunctionCall> _pendingFunctionCalls = new();
+    private readonly Dictionary<string, FunctionCallRuntime> _functionCalls = new();
 
     public event Action<SurfaceUpdate>? SurfaceUpdated;
     public event Action<string>? SurfaceDeleted;
@@ -65,7 +75,7 @@ public sealed class SurfaceController
         }
         catch (Exception ex)
         {
-            Error?.Invoke(new A2uiError("E_CONTROLLER", ex.Message, message.SurfaceId, message.FunctionCallId));
+            Error?.Invoke(new A2uiError(ErrorCodes.Controller, ex.Message, message.SurfaceId, message.FunctionCallId));
         }
     }
 
@@ -76,13 +86,13 @@ public sealed class SurfaceController
         var surfaceId = message.SurfaceId;
         if (string.IsNullOrWhiteSpace(surfaceId))
         {
-            Error?.Invoke(new A2uiError("E_SURFACE_ID_REQUIRED", "surfaceId is required for createSurface."));
+            Error?.Invoke(new A2uiError(ErrorCodes.SurfaceIdRequired, "surfaceId is required for createSurface."));
             return;
         }
 
         if (_surfaceStates.TryGetValue(surfaceId, out var state) && state == SurfaceState.Active)
         {
-            Error?.Invoke(new A2uiError("E_SURFACE_ALREADY_EXISTS", $"surface '{surfaceId}' already exists.", surfaceId));
+            Error?.Invoke(new A2uiError(ErrorCodes.SurfaceAlreadyExists, $"surface '{surfaceId}' already exists.", surfaceId));
             return;
         }
 
@@ -102,13 +112,13 @@ public sealed class SurfaceController
         var surfaceId = message.SurfaceId;
         if (string.IsNullOrWhiteSpace(surfaceId))
         {
-            Error?.Invoke(new A2uiError("E_SURFACE_ID_REQUIRED", "surfaceId is required for updateComponents."));
+            Error?.Invoke(new A2uiError(ErrorCodes.SurfaceIdRequired, "surfaceId is required for updateComponents."));
             return;
         }
 
         if (IsDeleted(surfaceId))
         {
-            Error?.Invoke(new A2uiError("E_SURFACE_DELETED", $"surface '{surfaceId}' was deleted.", surfaceId));
+            Error?.Invoke(new A2uiError(ErrorCodes.SurfaceDeleted, $"surface '{surfaceId}' was deleted.", surfaceId));
             return;
         }
 
@@ -122,7 +132,7 @@ public sealed class SurfaceController
         var incoming = payload["components"] as JsonObject;
         if (incoming is null)
         {
-            Error?.Invoke(new A2uiError("E_COMPONENTS_REQUIRED", "components object is required.", surfaceId));
+            Error?.Invoke(new A2uiError(ErrorCodes.ComponentsRequired, "components object is required.", surfaceId));
             return;
         }
 
@@ -141,13 +151,13 @@ public sealed class SurfaceController
         var surfaceId = message.SurfaceId;
         if (string.IsNullOrWhiteSpace(surfaceId))
         {
-            Error?.Invoke(new A2uiError("E_SURFACE_ID_REQUIRED", "surfaceId is required for updateDataModel."));
+            Error?.Invoke(new A2uiError(ErrorCodes.SurfaceIdRequired, "surfaceId is required for updateDataModel."));
             return;
         }
 
         if (IsDeleted(surfaceId))
         {
-            Error?.Invoke(new A2uiError("E_SURFACE_DELETED", $"surface '{surfaceId}' was deleted.", surfaceId));
+            Error?.Invoke(new A2uiError(ErrorCodes.SurfaceDeleted, $"surface '{surfaceId}' was deleted.", surfaceId));
             return;
         }
 
@@ -161,7 +171,7 @@ public sealed class SurfaceController
         var patches = payload["patches"] as JsonArray;
         if (patches is null)
         {
-            Error?.Invoke(new A2uiError("E_PATCHES_REQUIRED", "patches array is required.", surfaceId));
+            Error?.Invoke(new A2uiError(ErrorCodes.PatchesRequired, "patches array is required.", surfaceId));
             return;
         }
 
@@ -194,15 +204,17 @@ public sealed class SurfaceController
 
         if (!_surfaceStates.TryGetValue(surfaceId, out var state))
         {
-            Error?.Invoke(new A2uiError("E_SURFACE_NOT_FOUND", $"surface '{surfaceId}' not found.", surfaceId));
+            Error?.Invoke(new A2uiError(ErrorCodes.SurfaceNotFound, $"surface '{surfaceId}' not found.", surfaceId));
             return;
         }
 
         if (state == SurfaceState.Deleted)
         {
-            Error?.Invoke(new A2uiError("E_SURFACE_ALREADY_DELETED", $"surface '{surfaceId}' already deleted.", surfaceId));
+            Error?.Invoke(new A2uiError(ErrorCodes.SurfaceAlreadyDeleted, $"surface '{surfaceId}' already deleted.", surfaceId));
             return;
         }
+
+        CancelFunctionCallsForSurface(surfaceId);
 
         _surfaces.Remove(surfaceId);
         _dataModels.Remove(surfaceId);
@@ -216,43 +228,112 @@ public sealed class SurfaceController
         var functionCallId = message.FunctionCallId;
         if (string.IsNullOrWhiteSpace(functionCallId))
         {
-            Error?.Invoke(new A2uiError("E_FUNCTION_CALL_ID_REQUIRED", "functionCallId is required for callFunction.", message.SurfaceId));
+            Error?.Invoke(new A2uiError(ErrorCodes.FunctionCallIdRequired, "functionCallId is required for callFunction.", message.SurfaceId));
             return;
         }
 
         var surfaceId = message.SurfaceId;
         if (string.IsNullOrWhiteSpace(surfaceId))
         {
-            Error?.Invoke(new A2uiError("E_SURFACE_ID_REQUIRED", "surfaceId is required for callFunction.", FunctionCallId: functionCallId));
+            Error?.Invoke(new A2uiError(ErrorCodes.SurfaceIdRequired, "surfaceId is required for callFunction.", FunctionCallId: functionCallId));
             return;
         }
 
         if (IsDeleted(surfaceId))
         {
-            Error?.Invoke(new A2uiError("E_SURFACE_DELETED", $"surface '{surfaceId}' was deleted.", surfaceId, functionCallId));
+            Error?.Invoke(new A2uiError(ErrorCodes.SurfaceDeleted, $"surface '{surfaceId}' was deleted.", surfaceId, functionCallId));
             return;
         }
 
         if (!_surfaces.ContainsKey(surfaceId))
         {
-            Error?.Invoke(new A2uiError("E_SURFACE_NOT_FOUND", $"surface '{surfaceId}' not found for callFunction.", surfaceId, functionCallId));
+            Error?.Invoke(new A2uiError(ErrorCodes.SurfaceNotFound, $"surface '{surfaceId}' not found for callFunction.", surfaceId, functionCallId));
             return;
         }
 
-        var name = GetOptionalString(message.Payload?["name"]);
+        var payload = message.Payload ?? new JsonObject();
+        var isRetry = payload["retry"]?.GetValue<bool>() == true;
+        var isCancel = payload["cancel"]?.GetValue<bool>() == true;
+
+        if (isRetry && isCancel)
+        {
+            Error?.Invoke(new A2uiError(ErrorCodes.FunctionRetryInvalidState, "callFunction cannot set both retry and cancel.", surfaceId, functionCallId));
+            return;
+        }
+
+        if (isCancel)
+        {
+            CancelFunctionCall(functionCallId, surfaceId);
+            return;
+        }
+
+        var name = GetOptionalString(payload["name"]);
         if (string.IsNullOrWhiteSpace(name))
         {
-            Error?.Invoke(new A2uiError("E_FUNCTION_NAME_REQUIRED", "callFunction.name is required.", surfaceId, functionCallId));
+            Error?.Invoke(new A2uiError(ErrorCodes.FunctionNameRequired, "callFunction.name is required.", surfaceId, functionCallId));
             return;
         }
 
-        if (_pendingFunctionCalls.ContainsKey(functionCallId))
+        if (_functionCalls.TryGetValue(functionCallId, out var existing))
         {
-            Error?.Invoke(new A2uiError("E_FUNCTION_CALL_DUPLICATE", $"functionCallId '{functionCallId}' is already pending.", surfaceId, functionCallId));
+            if (!isRetry)
+            {
+                Error?.Invoke(new A2uiError(ErrorCodes.FunctionCallDuplicate, $"functionCallId '{functionCallId}' is already tracked.", surfaceId, functionCallId));
+                return;
+            }
+
+            if (!string.Equals(existing.SurfaceId, surfaceId, StringComparison.Ordinal))
+            {
+                Error?.Invoke(new A2uiError(
+                    ErrorCodes.FunctionSurfaceMismatch,
+                    $"retry surfaceId '{surfaceId}' does not match call surface '{existing.SurfaceId}'.",
+                    surfaceId,
+                    functionCallId));
+                return;
+            }
+
+            if (!TryTransition(existing, FunctionCallState.RetryScheduled, out var retryScheduled))
+            {
+                Error?.Invoke(new A2uiError(
+                    ErrorCodes.FunctionRetryInvalidState,
+                    $"functionCallId '{functionCallId}' cannot retry from state '{existing.State}'.",
+                    surfaceId,
+                    functionCallId));
+                return;
+            }
+
+            if (!TryTransition(retryScheduled, FunctionCallState.Pending, out var pendingRetry))
+            {
+                Error?.Invoke(new A2uiError(
+                    ErrorCodes.FunctionStateTransitionInvalid,
+                    $"retry transition failed for functionCallId '{functionCallId}'.",
+                    surfaceId,
+                    functionCallId));
+                return;
+            }
+
+            _functionCalls[functionCallId] = pendingRetry with
+            {
+                Name = name,
+                EnqueueTime = _utcNow(),
+                Attempt = existing.Attempt + 1
+            };
             return;
         }
 
-        _pendingFunctionCalls[functionCallId] = new PendingFunctionCall(functionCallId, surfaceId, name, _utcNow());
+        if (isRetry)
+        {
+            Error?.Invoke(new A2uiError(ErrorCodes.FunctionRetryTargetMissing, $"retry target '{functionCallId}' is not found.", surfaceId, functionCallId));
+            return;
+        }
+
+        _functionCalls[functionCallId] = new FunctionCallRuntime(
+            functionCallId,
+            surfaceId,
+            name,
+            FunctionCallState.Pending,
+            _utcNow(),
+            Attempt: 1);
     }
 
     private void HandleFunctionResponse(NormalMessage message)
@@ -260,28 +341,48 @@ public sealed class SurfaceController
         var functionCallId = message.FunctionCallId;
         if (string.IsNullOrWhiteSpace(functionCallId))
         {
-            Error?.Invoke(new A2uiError("E_FUNCTION_CALL_ID_REQUIRED", "functionCallId is required for functionResponse.", message.SurfaceId));
+            Error?.Invoke(new A2uiError(ErrorCodes.FunctionCallIdRequired, "functionCallId is required for functionResponse.", message.SurfaceId));
             return;
         }
 
-        if (!_pendingFunctionCalls.TryGetValue(functionCallId, out var pending))
+        if (!_functionCalls.TryGetValue(functionCallId, out var tracked))
         {
-            Error?.Invoke(new A2uiError("E_FUNCTION_RESPONSE_ORPHAN", $"functionResponse has no pending call for '{functionCallId}'.", message.SurfaceId, functionCallId));
+            Error?.Invoke(new A2uiError(ErrorCodes.FunctionResponseOrphan, $"functionResponse has no call for '{functionCallId}'.", message.SurfaceId, functionCallId));
             return;
         }
 
         var responseSurfaceId = message.SurfaceId;
-        if (!string.IsNullOrWhiteSpace(responseSurfaceId) && !string.Equals(responseSurfaceId, pending.SurfaceId, StringComparison.Ordinal))
+        if (!string.IsNullOrWhiteSpace(responseSurfaceId) && !string.Equals(responseSurfaceId, tracked.SurfaceId, StringComparison.Ordinal))
         {
             Error?.Invoke(new A2uiError(
-                "E_FUNCTION_SURFACE_MISMATCH",
-                $"functionResponse surfaceId '{responseSurfaceId}' does not match call surface '{pending.SurfaceId}'.",
+                ErrorCodes.FunctionSurfaceMismatch,
+                $"functionResponse surfaceId '{responseSurfaceId}' does not match call surface '{tracked.SurfaceId}'.",
                 responseSurfaceId,
                 functionCallId));
             return;
         }
 
-        _pendingFunctionCalls.Remove(functionCallId);
+        if (tracked.State != FunctionCallState.Pending)
+        {
+            Error?.Invoke(new A2uiError(
+                ErrorCodes.FunctionResponseLate,
+                $"functionResponse arrived after call '{functionCallId}' reached state '{tracked.State}'.",
+                tracked.SurfaceId,
+                functionCallId));
+            return;
+        }
+
+        if (!TryTransition(tracked, FunctionCallState.Completed, out var completed))
+        {
+            Error?.Invoke(new A2uiError(
+                ErrorCodes.FunctionStateTransitionInvalid,
+                $"cannot complete functionCallId '{functionCallId}' from state '{tracked.State}'.",
+                tracked.SurfaceId,
+                functionCallId));
+            return;
+        }
+
+        _functionCalls[functionCallId] = completed;
     }
 
     private void PublishSurface(string surfaceId)
@@ -306,7 +407,7 @@ public sealed class SurfaceController
 
         if (queue.Count >= _options.MaxPendingPerSurface)
         {
-            Error?.Invoke(new A2uiError("E_PENDING_OVERFLOW", $"pending queue overflow for surface '{surfaceId}'", surfaceId));
+            Error?.Invoke(new A2uiError(ErrorCodes.PendingOverflow, $"pending queue overflow for surface '{surfaceId}'", surfaceId));
             return;
         }
 
@@ -326,7 +427,7 @@ public sealed class SurfaceController
             var pending = queue.Dequeue();
             if (IsExpired(pending))
             {
-                Error?.Invoke(new A2uiError("E_PENDING_EXPIRED", $"pending update expired for surface '{surfaceId}'", surfaceId));
+                Error?.Invoke(new A2uiError(ErrorCodes.PendingExpired, $"pending update expired for surface '{surfaceId}'", surfaceId));
                 continue;
             }
 
@@ -356,26 +457,113 @@ public sealed class SurfaceController
 
     private void ExpirePendingFunctionCalls()
     {
-        if (_pendingFunctionCalls.Count == 0)
+        if (_functionCalls.Count == 0)
         {
             return;
         }
 
         var now = _utcNow();
-        var expired = _pendingFunctionCalls.Values
-            .Where(call => now - call.EnqueueTime > _options.FunctionPendingTtl)
+        var pendingIds = _functionCalls.Values
+            .Where(call => call.State == FunctionCallState.Pending && now - call.EnqueueTime > _options.FunctionPendingTtl)
+            .Select(call => call.FunctionCallId)
             .ToList();
 
-        foreach (var call in expired)
+        foreach (var callId in pendingIds)
         {
-            _pendingFunctionCalls.Remove(call.FunctionCallId);
+            var call = _functionCalls[callId];
+            if (!TryTransition(call, FunctionCallState.TimedOut, out var timedOut))
+            {
+                Error?.Invoke(new A2uiError(
+                    ErrorCodes.FunctionStateTransitionInvalid,
+                    $"cannot timeout functionCallId '{callId}' from state '{call.State}'.",
+                    call.SurfaceId,
+                    callId));
+                continue;
+            }
+
+            _functionCalls[callId] = timedOut;
             Error?.Invoke(new A2uiError(
-                "E_FUNCTION_TIMEOUT",
+                ErrorCodes.FunctionTimeout,
                 $"function call '{call.Name}' timed out.",
                 call.SurfaceId,
                 call.FunctionCallId));
         }
     }
+
+    private void CancelFunctionCall(string functionCallId, string surfaceId)
+    {
+        if (!_functionCalls.TryGetValue(functionCallId, out var tracked))
+        {
+            Error?.Invoke(new A2uiError(ErrorCodes.FunctionCancelTargetMissing, $"functionCallId '{functionCallId}' is not tracked.", surfaceId, functionCallId));
+            return;
+        }
+
+        if (!string.Equals(tracked.SurfaceId, surfaceId, StringComparison.Ordinal))
+        {
+            Error?.Invoke(new A2uiError(
+                ErrorCodes.FunctionSurfaceMismatch,
+                $"cancel surfaceId '{surfaceId}' does not match call surface '{tracked.SurfaceId}'.",
+                surfaceId,
+                functionCallId));
+            return;
+        }
+
+        if (!TryTransition(tracked, FunctionCallState.Cancelled, out var cancelled))
+        {
+            Error?.Invoke(new A2uiError(
+                ErrorCodes.FunctionCancelInvalidState,
+                $"functionCallId '{functionCallId}' cannot be cancelled from state '{tracked.State}'.",
+                surfaceId,
+                functionCallId));
+            return;
+        }
+
+        _functionCalls[functionCallId] = cancelled;
+        Error?.Invoke(new A2uiError(ErrorCodes.FunctionCancelled, $"functionCallId '{functionCallId}' was cancelled.", surfaceId, functionCallId));
+    }
+
+    private void CancelFunctionCallsForSurface(string surfaceId)
+    {
+        var ids = _functionCalls.Values
+            .Where(call => string.Equals(call.SurfaceId, surfaceId, StringComparison.Ordinal))
+            .Select(call => call.FunctionCallId)
+            .ToList();
+
+        foreach (var id in ids)
+        {
+            var call = _functionCalls[id];
+            if (!TryTransition(call, FunctionCallState.Cancelled, out var cancelled))
+            {
+                continue;
+            }
+
+            _functionCalls[id] = cancelled;
+            Error?.Invoke(new A2uiError(ErrorCodes.FunctionCancelled, $"functionCallId '{id}' was cancelled because surface '{surfaceId}' was deleted.", surfaceId, id));
+        }
+    }
+
+    private static bool TryTransition(FunctionCallRuntime current, FunctionCallState next, out FunctionCallRuntime updated)
+    {
+        if (!IsValidTransition(current.State, next))
+        {
+            updated = current;
+            return false;
+        }
+
+        updated = current with { State = next };
+        return true;
+    }
+
+    private static bool IsValidTransition(FunctionCallState from, FunctionCallState to)
+        => from switch
+        {
+            FunctionCallState.Pending => to is FunctionCallState.RetryScheduled or FunctionCallState.Cancelled or FunctionCallState.Completed or FunctionCallState.TimedOut,
+            FunctionCallState.RetryScheduled => to is FunctionCallState.Pending or FunctionCallState.Cancelled,
+            FunctionCallState.Cancelled => false,
+            FunctionCallState.Completed => false,
+            FunctionCallState.TimedOut => to is FunctionCallState.RetryScheduled,
+            _ => false
+        };
 
     private static string? GetOptionalString(JsonNode? node)
     {
@@ -384,5 +572,12 @@ public sealed class SurfaceController
     }
 
     private sealed record PendingUpdate(NormalMessage Message, DateTimeOffset EnqueueTime);
-    private sealed record PendingFunctionCall(string FunctionCallId, string SurfaceId, string Name, DateTimeOffset EnqueueTime);
+
+    private sealed record FunctionCallRuntime(
+        string FunctionCallId,
+        string SurfaceId,
+        string Name,
+        FunctionCallState State,
+        DateTimeOffset EnqueueTime,
+        int Attempt);
 }
