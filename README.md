@@ -14,3 +14,8 @@
 
 ## Automation
 - `scripts/daily_news_fetch.py`와 cron(job `daily-news-digest`)이 매일 오전 6시(Asia/Seoul)에 RSS를 수집·필터링하여 `daily/YYYY-MM/AgentK_Daily_Insight_YYYY-MM-DD.md` 문서를 생성하고 Git 커밋/푸시를 수행합니다.
+
+## Test quickstart (A2UI)
+- 표준 실행: `./scripts/test-a2ui.sh`
+- 루트에서 `dotnet test`를 직접 실행하면 솔루션/프로젝트 미지정으로 실패할 수 있습니다.
+- 필요 시 기존 방식도 사용 가능: `dotnet test artifacts/a2ui-analysis/tests/TizenA2uiRenderer.Tests/TizenA2uiRenderer.Tests.csproj`

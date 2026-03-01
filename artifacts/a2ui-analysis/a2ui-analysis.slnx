@@ -1,0 +1,9 @@
+<Solution>
+  <Folder Name="/src/" />
+  <Folder Name="/src/tizen-a2ui-renderer/">
+    <Project Path="src/tizen-a2ui-renderer/TizenA2uiRenderer.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/TizenA2uiRenderer.Tests/TizenA2uiRenderer.Tests.csproj" />
+  </Folder>
+</Solution>
