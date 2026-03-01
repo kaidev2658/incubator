@@ -89,18 +89,29 @@ public class NuiBindingContractsTests
         Assert.Equal("root", initialState!.RootId);
         Assert.Equal(4, initialState.Nodes.Count);
         Assert.Equal("Container", initialState.Nodes["root"].Type);
+        Assert.Equal("main:root", initialState.Nodes["root"].ControlId);
+        Assert.Equal(NuiComponentContractKind.Container, initialState.Nodes["root"].ContractKind);
         Assert.Null(initialState.Nodes["root"].Text);
         Assert.Null(initialState.Nodes["root"].Source);
         Assert.Equal("Text", initialState.Nodes["title"].Type);
+        Assert.Equal("main:title", initialState.Nodes["title"].ControlId);
+        Assert.Equal(NuiComponentContractKind.Text, initialState.Nodes["title"].ContractKind);
         Assert.Equal("Boot", initialState.Nodes["title"].Text);
         Assert.Null(initialState.Nodes["title"].Source);
         Assert.Equal("Image", initialState.Nodes["avatar"].Type);
+        Assert.Equal("main:avatar", initialState.Nodes["avatar"].ControlId);
+        Assert.Equal(NuiComponentContractKind.Image, initialState.Nodes["avatar"].ContractKind);
         Assert.Null(initialState.Nodes["avatar"].Text);
         Assert.Equal("boot.png", initialState.Nodes["avatar"].Source);
         Assert.Equal("Button", initialState.Nodes["cta"].Type);
+        Assert.Equal("main:cta", initialState.Nodes["cta"].ControlId);
+        Assert.Equal(NuiComponentContractKind.Button, initialState.Nodes["cta"].ContractKind);
         Assert.Equal("Start", initialState.Nodes["cta"].Text);
         Assert.Null(initialState.Nodes["cta"].Source);
         Assert.Empty(initialState.SkippedContracts);
+
+        var initialControlIds = initialState.Nodes
+            .ToDictionary(entry => entry.Key, entry => entry.Value.ControlId);
 
         var updatedDefinition = new SurfaceDefinition(
             "main",
@@ -130,7 +141,52 @@ public class NuiBindingContractsTests
         Assert.Equal("from-model.png", updatedState.Nodes["avatar"].Source);
         Assert.Equal("Button", updatedState.Nodes["cta"].Type);
         Assert.Equal("ModelLabel", updatedState.Nodes["cta"].Text);
+        Assert.Equal(initialControlIds["root"], updatedState.Nodes["root"].ControlId);
+        Assert.Equal(initialControlIds["title"], updatedState.Nodes["title"].ControlId);
+        Assert.Equal(initialControlIds["avatar"], updatedState.Nodes["avatar"].ControlId);
+        Assert.Equal(initialControlIds["cta"], updatedState.Nodes["cta"].ControlId);
         Assert.Empty(updatedState.SkippedContracts);
+    }
+
+    [Fact]
+    public void NuiBindingHooks_Render_CreateUpdateRemove_Lifecycle_Maintains_Stable_ControlIds_And_Clears_Surface()
+    {
+        var hooks = new NuiBindingHooks(hostSupportsNativeBinding: true);
+        hooks.Initialize();
+
+        var definition = new SurfaceDefinition(
+            "main",
+            "root",
+            new JsonObject
+            {
+                ["root"] = new JsonObject { ["component"] = "Column" },
+                ["title"] = new JsonObject { ["component"] = "Text" }
+            });
+        var initialModel = new DataModel();
+        initialModel.Set("title.text", "v1");
+
+        hooks.Render("main", definition, initialModel);
+        var firstState = hooks.GetSurfaceRenderState("main");
+
+        Assert.NotNull(firstState);
+        Assert.Equal("v1", firstState!.Nodes["title"].Text);
+        var firstTitleControlId = firstState.Nodes["title"].ControlId;
+        var firstRootControlId = firstState.Nodes["root"].ControlId;
+
+        var updatedModel = new DataModel();
+        updatedModel.Set("title.text", "v2");
+
+        hooks.Render("main", definition, updatedModel);
+        var secondState = hooks.GetSurfaceRenderState("main");
+
+        Assert.NotNull(secondState);
+        Assert.Equal("v2", secondState!.Nodes["title"].Text);
+        Assert.Equal(firstTitleControlId, secondState.Nodes["title"].ControlId);
+        Assert.Equal(firstRootControlId, secondState.Nodes["root"].ControlId);
+
+        hooks.Remove("main");
+
+        Assert.Null(hooks.GetSurfaceRenderState("main"));
     }
 
     [Fact]

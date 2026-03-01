@@ -56,8 +56,61 @@ public sealed record NuiSurfaceBindingPlan(
     string RootId,
     IReadOnlyList<NuiComponentBinding> Components);
 
+public sealed class NuiControlObject
+{
+    public NuiControlObject(
+        string controlId,
+        string componentId)
+    {
+        ControlId = controlId;
+        ComponentId = componentId;
+        ApplyContainer();
+    }
+
+    public string ControlId { get; }
+    public string ComponentId { get; }
+    public NuiComponentContractKind ContractKind { get; private set; }
+    public string Type { get; private set; } = "Container";
+    public string? Text { get; private set; }
+    public string? Source { get; private set; }
+
+    public void ApplyText(string? text)
+    {
+        ContractKind = NuiComponentContractKind.Text;
+        Type = "Text";
+        Text = text;
+        Source = null;
+    }
+
+    public void ApplyImage(string? source)
+    {
+        ContractKind = NuiComponentContractKind.Image;
+        Type = "Image";
+        Text = null;
+        Source = source;
+    }
+
+    public void ApplyButton(string? text)
+    {
+        ContractKind = NuiComponentContractKind.Button;
+        Type = "Button";
+        Text = text;
+        Source = null;
+    }
+
+    public void ApplyContainer()
+    {
+        ContractKind = NuiComponentContractKind.Container;
+        Type = "Container";
+        Text = null;
+        Source = null;
+    }
+}
+
 public sealed record NuiMaterializedNode(
     string ComponentId,
+    string ControlId,
+    NuiComponentContractKind ContractKind,
     string Type,
     string? Text,
     string? Source);
@@ -96,7 +149,7 @@ public sealed class NullTizenBindingHooks : ITizenBindingHooks
 
 public sealed class NuiBindingHooks : ITizenBindingHooks
 {
-    private readonly Dictionary<string, Dictionary<string, NuiMaterializedNode>> _surfaceNodes = [];
+    private readonly Dictionary<string, Dictionary<string, NuiControlObject>> _surfaceControls = [];
     private readonly Dictionary<string, List<NuiSkippedContract>> _surfaceSkippedContracts = [];
     private readonly Dictionary<string, string> _surfaceRoots = [];
     private bool _initialized;
@@ -138,10 +191,10 @@ public sealed class NuiBindingHooks : ITizenBindingHooks
         EnsureInitialized();
         LastBindingPlan = BuildBindingPlan(surfaceId, definition);
 
-        if (!_surfaceNodes.TryGetValue(surfaceId, out var nodes))
+        if (!_surfaceControls.TryGetValue(surfaceId, out var controls))
         {
-            nodes = new Dictionary<string, NuiMaterializedNode>(StringComparer.Ordinal);
-            _surfaceNodes[surfaceId] = nodes;
+            controls = new Dictionary<string, NuiControlObject>(StringComparer.Ordinal);
+            _surfaceControls[surfaceId] = controls;
         }
 
         var touchedComponentIds = new HashSet<string>(StringComparer.Ordinal);
@@ -152,35 +205,22 @@ public sealed class NuiBindingHooks : ITizenBindingHooks
             switch (component.ContractKind)
             {
                 case NuiComponentContractKind.Text:
-                    nodes[component.ComponentId] = new NuiMaterializedNode(
-                        component.ComponentId,
-                        Type: "Text",
-                        Text: ResolveTextValue(component.ComponentId, definition, dataModel),
-                        Source: null);
+                    GetOrCreateControl(controls, surfaceId, component.ComponentId)
+                        .ApplyText(ResolveTextValue(component.ComponentId, definition, dataModel));
                     touchedComponentIds.Add(component.ComponentId);
                     break;
                 case NuiComponentContractKind.Image:
-                    nodes[component.ComponentId] = new NuiMaterializedNode(
-                        component.ComponentId,
-                        Type: "Image",
-                        Text: null,
-                        Source: ResolveImageSourceValue(component.ComponentId, definition, dataModel));
+                    GetOrCreateControl(controls, surfaceId, component.ComponentId)
+                        .ApplyImage(ResolveImageSourceValue(component.ComponentId, definition, dataModel));
                     touchedComponentIds.Add(component.ComponentId);
                     break;
                 case NuiComponentContractKind.Button:
-                    nodes[component.ComponentId] = new NuiMaterializedNode(
-                        component.ComponentId,
-                        Type: "Button",
-                        Text: ResolveButtonLabelValue(component.ComponentId, definition, dataModel),
-                        Source: null);
+                    GetOrCreateControl(controls, surfaceId, component.ComponentId)
+                        .ApplyButton(ResolveButtonLabelValue(component.ComponentId, definition, dataModel));
                     touchedComponentIds.Add(component.ComponentId);
                     break;
                 case NuiComponentContractKind.Container:
-                    nodes[component.ComponentId] = new NuiMaterializedNode(
-                        component.ComponentId,
-                        Type: "Container",
-                        Text: null,
-                        Source: null);
+                    GetOrCreateControl(controls, surfaceId, component.ComponentId).ApplyContainer();
                     touchedComponentIds.Add(component.ComponentId);
                     break;
                 default:
@@ -201,12 +241,12 @@ public sealed class NuiBindingHooks : ITizenBindingHooks
             }
         }
 
-        var staleNodeIds = nodes.Keys
+        var staleNodeIds = controls.Keys
             .Where(componentId => !touchedComponentIds.Contains(componentId))
             .ToList();
         foreach (var staleNodeId in staleNodeIds)
         {
-            nodes.Remove(staleNodeId);
+            controls.Remove(staleNodeId);
         }
 
         _surfaceRoots[surfaceId] = definition.RootId;
@@ -216,7 +256,7 @@ public sealed class NuiBindingHooks : ITizenBindingHooks
     public void Remove(string surfaceId)
     {
         EnsureInitialized();
-        _surfaceNodes.Remove(surfaceId);
+        _surfaceControls.Remove(surfaceId);
         _surfaceSkippedContracts.Remove(surfaceId);
         _surfaceRoots.Remove(surfaceId);
     }
@@ -260,16 +300,25 @@ public sealed class NuiBindingHooks : ITizenBindingHooks
 
     public NuiSurfaceRenderState? GetSurfaceRenderState(string surfaceId)
     {
-        if (!_surfaceNodes.TryGetValue(surfaceId, out var nodes))
+        if (!_surfaceControls.TryGetValue(surfaceId, out var controls))
         {
             return null;
         }
 
         var rootId = _surfaceRoots.GetValueOrDefault(surfaceId, string.Empty);
         var skipped = _surfaceSkippedContracts.GetValueOrDefault(surfaceId) ?? [];
-        var nodesSnapshot = nodes
+        var nodesSnapshot = controls
             .OrderBy(entry => entry.Key, StringComparer.Ordinal)
-            .ToDictionary(entry => entry.Key, entry => entry.Value, StringComparer.Ordinal);
+            .ToDictionary(
+                entry => entry.Key,
+                entry => new NuiMaterializedNode(
+                    entry.Key,
+                    entry.Value.ControlId,
+                    entry.Value.ContractKind,
+                    entry.Value.Type,
+                    entry.Value.Text,
+                    entry.Value.Source),
+                StringComparer.Ordinal);
         var skippedSnapshot = skipped
             .OrderBy(entry => entry.ComponentId, StringComparer.Ordinal)
             .ToList();
@@ -362,6 +411,26 @@ public sealed class NuiBindingHooks : ITizenBindingHooks
 
     private static string? TryReadText(JsonNode? value)
         => value?.ToString();
+
+    private static NuiControlObject GetOrCreateControl(
+        IDictionary<string, NuiControlObject> controls,
+        string surfaceId,
+        string componentId)
+    {
+        if (controls.TryGetValue(componentId, out var existing))
+        {
+            return existing;
+        }
+
+        var created = new NuiControlObject(
+            BuildControlId(surfaceId, componentId),
+            componentId);
+        controls[componentId] = created;
+        return created;
+    }
+
+    private static string BuildControlId(string surfaceId, string componentId)
+        => $"{surfaceId}:{componentId}";
 }
 
 public sealed class TizenRuntimeAdapter(ITizenBindingHooks bindingHooks) : ITizenRuntimeAdapter
