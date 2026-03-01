@@ -37,6 +37,23 @@ public interface ITizenBindingHooks
     void Remove(string surfaceId);
 }
 
+public enum NuiComponentContractKind
+{
+    Text,
+    Container,
+    Unsupported
+}
+
+public sealed record NuiComponentBinding(
+    string ComponentId,
+    string ComponentType,
+    NuiComponentContractKind ContractKind);
+
+public sealed record NuiSurfaceBindingPlan(
+    string SurfaceId,
+    string RootId,
+    IReadOnlyList<NuiComponentBinding> Components);
+
 public sealed class NullTizenBindingHooks : ITizenBindingHooks
 {
     public string BindingName => nameof(NullTizenBindingHooks);
@@ -49,22 +66,23 @@ public sealed class NullTizenBindingHooks : ITizenBindingHooks
     public void Remove(string surfaceId) { }
 }
 
-public sealed class PlaceholderRealTizenBindingHooks : ITizenBindingHooks
+public sealed class NuiBindingHooks : ITizenBindingHooks
 {
     private bool _initialized;
 
-    public PlaceholderRealTizenBindingHooks(
+    public NuiBindingHooks(
         bool hostSupportsNativeBinding,
-        string bindingName = "tizen-phase-a-placeholder-binding")
+        string bindingName = "tizen-nui-binding-scaffold")
     {
         HostSupportsNativeBinding = hostSupportsNativeBinding;
         BindingName = string.IsNullOrWhiteSpace(bindingName)
-            ? "tizen-phase-a-placeholder-binding"
+            ? "tizen-nui-binding-scaffold"
             : bindingName.Trim();
     }
 
     public bool HostSupportsNativeBinding { get; }
     public string BindingName { get; }
+    public NuiSurfaceBindingPlan? LastBindingPlan { get; private set; }
     public bool SupportsRealBinding => true;
     public bool CanRender => HostSupportsNativeBinding;
     public bool CanRemove => HostSupportsNativeBinding;
@@ -84,7 +102,8 @@ public sealed class PlaceholderRealTizenBindingHooks : ITizenBindingHooks
     public void Render(string surfaceId, SurfaceDefinition definition, DataModel dataModel)
     {
         EnsureInitialized();
-        // TODO(phase-b): Replace deterministic no-op with actual Tizen native render binding.
+        LastBindingPlan = BuildBindingPlan(surfaceId, definition);
+        // TODO(phase-b): Replace NUI binding scaffold with actual DALi/NUI control creation and patching.
     }
 
     public void Remove(string surfaceId)
@@ -101,6 +120,32 @@ public sealed class PlaceholderRealTizenBindingHooks : ITizenBindingHooks
                 $"Binding '{BindingName}' must be initialized before runtime operations.");
         }
     }
+
+    public static NuiSurfaceBindingPlan BuildBindingPlan(string surfaceId, SurfaceDefinition definition)
+    {
+        var components = new List<NuiComponentBinding>();
+        foreach (var component in definition.Components)
+        {
+            var componentType = component.Value?["component"]?.GetValue<string>() ?? "Unknown";
+            components.Add(new NuiComponentBinding(
+                component.Key,
+                componentType,
+                ResolveContractKind(componentType)));
+        }
+
+        return new NuiSurfaceBindingPlan(surfaceId, definition.RootId, components);
+    }
+
+    public static NuiComponentContractKind ResolveContractKind(string? componentType)
+    {
+        var normalized = componentType?.Trim().ToLowerInvariant() ?? string.Empty;
+        return normalized switch
+        {
+            "text" => NuiComponentContractKind.Text,
+            "column" or "row" or "container" => NuiComponentContractKind.Container,
+            _ => NuiComponentContractKind.Unsupported
+        };
+    }
 }
 
 public sealed class TizenRuntimeAdapter(ITizenBindingHooks bindingHooks) : ITizenRuntimeAdapter
@@ -108,7 +153,7 @@ public sealed class TizenRuntimeAdapter(ITizenBindingHooks bindingHooks) : ITize
     private readonly ITizenBindingHooks _bindingHooks = bindingHooks ?? throw new ArgumentNullException(nameof(bindingHooks));
     private RuntimeAdapterStatus _status = new(
         nameof(TizenRuntimeAdapter),
-        RuntimeMode: "tizen-binding-poc",
+        RuntimeMode: "tizen-nui",
         new RuntimeAdapterCapabilities(
             SupportsRender: false,
             SupportsRemove: false,
@@ -160,7 +205,7 @@ public sealed class TizenRuntimeAdapter(ITizenBindingHooks bindingHooks) : ITize
 
         _status = new RuntimeAdapterStatus(
             nameof(TizenRuntimeAdapter),
-            RuntimeMode: "tizen-binding-poc",
+            RuntimeMode: "tizen-nui",
             new RuntimeAdapterCapabilities(
                 SupportsRender: _bindingHooks.CanRender,
                 SupportsRemove: _bindingHooks.CanRemove,

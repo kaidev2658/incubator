@@ -23,7 +23,7 @@ public class RuntimeReadinessTests
     public void Pipeline_Production_Readiness_Allows_Placeholder_Real_Binding_On_Tizen_Host()
     {
         using var pipeline = new A2uiRuntimePipeline(
-            runtimeAdapter: new TizenRuntimeAdapter(new PlaceholderRealTizenBindingHooks(
+            runtimeAdapter: new TizenRuntimeAdapter(new NuiBindingHooks(
                 hostSupportsNativeBinding: true)),
             options: new RuntimePipelineOptions
             {
