@@ -73,29 +73,57 @@ public sealed class NuiControlObject
     public string Type { get; private set; } = "Container";
     public string? Text { get; private set; }
     public string? Source { get; private set; }
+    public string? Color { get; private set; }
+    public string? Font { get; private set; }
+    public string? Alignment { get; private set; }
+    public string? Fit { get; private set; }
+    public string? ResizeMode { get; private set; }
+    public bool? Enabled { get; private set; }
+    public string? Variant { get; private set; }
 
-    public void ApplyText(string? text)
+    public void ApplyText(string? text, string? color, string? font, string? alignment)
     {
         ContractKind = NuiComponentContractKind.Text;
         Type = "Text";
         Text = text;
         Source = null;
+        Color = color;
+        Font = font;
+        Alignment = alignment;
+        Fit = null;
+        ResizeMode = null;
+        Enabled = null;
+        Variant = null;
     }
 
-    public void ApplyImage(string? source)
+    public void ApplyImage(string? source, string? fit, string? resizeMode)
     {
         ContractKind = NuiComponentContractKind.Image;
         Type = "Image";
         Text = null;
         Source = source;
+        Color = null;
+        Font = null;
+        Alignment = null;
+        Fit = fit;
+        ResizeMode = resizeMode;
+        Enabled = null;
+        Variant = null;
     }
 
-    public void ApplyButton(string? text)
+    public void ApplyButton(string? text, bool? enabled, string? variant)
     {
         ContractKind = NuiComponentContractKind.Button;
         Type = "Button";
         Text = text;
         Source = null;
+        Color = null;
+        Font = null;
+        Alignment = null;
+        Fit = null;
+        ResizeMode = null;
+        Enabled = enabled;
+        Variant = variant;
     }
 
     public void ApplyContainer()
@@ -104,6 +132,13 @@ public sealed class NuiControlObject
         Type = "Container";
         Text = null;
         Source = null;
+        Color = null;
+        Font = null;
+        Alignment = null;
+        Fit = null;
+        ResizeMode = null;
+        Enabled = null;
+        Variant = null;
     }
 }
 
@@ -113,7 +148,30 @@ public sealed record NuiMaterializedNode(
     NuiComponentContractKind ContractKind,
     string Type,
     string? Text,
-    string? Source);
+    string? Source,
+    string? Color,
+    string? Font,
+    string? Alignment,
+    string? Fit,
+    string? ResizeMode,
+    bool? Enabled,
+    string? Variant);
+
+public sealed record NuiTextBindingValues(
+    string? Text,
+    string? Color,
+    string? Font,
+    string? Alignment);
+
+public sealed record NuiImageBindingValues(
+    string? Source,
+    string? Fit,
+    string? ResizeMode);
+
+public sealed record NuiButtonBindingValues(
+    string? Label,
+    bool? Enabled,
+    string? Variant);
 
 public sealed record NuiSkippedContract(
     string ComponentId,
@@ -205,18 +263,31 @@ public sealed class NuiBindingHooks : ITizenBindingHooks
             switch (component.ContractKind)
             {
                 case NuiComponentContractKind.Text:
+                    var textValues = ResolveTextValues(component.ComponentId, definition, dataModel);
                     GetOrCreateControl(controls, surfaceId, component.ComponentId)
-                        .ApplyText(ResolveTextValue(component.ComponentId, definition, dataModel));
+                        .ApplyText(
+                            textValues.Text,
+                            textValues.Color,
+                            textValues.Font,
+                            textValues.Alignment);
                     touchedComponentIds.Add(component.ComponentId);
                     break;
                 case NuiComponentContractKind.Image:
+                    var imageValues = ResolveImageValues(component.ComponentId, definition, dataModel);
                     GetOrCreateControl(controls, surfaceId, component.ComponentId)
-                        .ApplyImage(ResolveImageSourceValue(component.ComponentId, definition, dataModel));
+                        .ApplyImage(
+                            imageValues.Source,
+                            imageValues.Fit,
+                            imageValues.ResizeMode);
                     touchedComponentIds.Add(component.ComponentId);
                     break;
                 case NuiComponentContractKind.Button:
+                    var buttonValues = ResolveButtonValues(component.ComponentId, definition, dataModel);
                     GetOrCreateControl(controls, surfaceId, component.ComponentId)
-                        .ApplyButton(ResolveButtonLabelValue(component.ComponentId, definition, dataModel));
+                        .ApplyButton(
+                            buttonValues.Label,
+                            buttonValues.Enabled,
+                            buttonValues.Variant);
                     touchedComponentIds.Add(component.ComponentId);
                     break;
                 case NuiComponentContractKind.Container:
@@ -317,7 +388,14 @@ public sealed class NuiBindingHooks : ITizenBindingHooks
                     entry.Value.ContractKind,
                     entry.Value.Type,
                     entry.Value.Text,
-                    entry.Value.Source),
+                    entry.Value.Source,
+                    entry.Value.Color,
+                    entry.Value.Font,
+                    entry.Value.Alignment,
+                    entry.Value.Fit,
+                    entry.Value.ResizeMode,
+                    entry.Value.Enabled,
+                    entry.Value.Variant),
                 StringComparer.Ordinal);
         var skippedSnapshot = skipped
             .OrderBy(entry => entry.ComponentId, StringComparer.Ordinal)
@@ -330,78 +408,127 @@ public sealed class NuiBindingHooks : ITizenBindingHooks
             skippedSnapshot);
     }
 
-    private static string? ResolveTextValue(string componentId, SurfaceDefinition definition, DataModel dataModel)
+    private static NuiTextBindingValues ResolveTextValues(string componentId, SurfaceDefinition definition, DataModel dataModel)
     {
+        JsonObject? componentObject = null;
         if (definition.Components.TryGetPropertyValue(componentId, out var componentNode)
-            && componentNode is JsonObject componentObject)
+            && componentNode is JsonObject resolvedComponentObject)
         {
-            var propsText = TryReadText(componentObject["props"]?["text"]);
-            if (propsText is not null)
-            {
-                return propsText;
-            }
-
-            var directText = TryReadText(componentObject["text"]);
-            if (directText is not null)
-            {
-                return directText;
-            }
+            componentObject = resolvedComponentObject;
+            return new NuiTextBindingValues(
+                ResolveStringField(componentId, componentObject, dataModel, "text"),
+                ResolveStringField(componentId, componentObject, dataModel, "color"),
+                ResolveStringField(componentId, componentObject, dataModel, "font"),
+                ResolveStringField(componentId, componentObject, dataModel, "alignment"));
         }
 
-        return TryReadText(dataModel.Get($"{componentId}.text"))
-            ?? TryReadText(dataModel.Get(componentId));
+        return new NuiTextBindingValues(
+            ResolveStringField(componentId, componentObject, dataModel, "text"),
+            ResolveStringField(componentId, componentObject, dataModel, "color"),
+            ResolveStringField(componentId, componentObject, dataModel, "font"),
+            ResolveStringField(componentId, componentObject, dataModel, "alignment"));
     }
 
-    private static string? ResolveImageSourceValue(string componentId, SurfaceDefinition definition, DataModel dataModel)
+    private static NuiImageBindingValues ResolveImageValues(string componentId, SurfaceDefinition definition, DataModel dataModel)
     {
+        JsonObject? componentObject = null;
         if (definition.Components.TryGetPropertyValue(componentId, out var componentNode)
-            && componentNode is JsonObject componentObject)
+            && componentNode is JsonObject resolvedComponentObject)
         {
-            var propsSource = TryReadText(componentObject["props"]?["src"]);
-            if (propsSource is not null)
-            {
-                return propsSource;
-            }
-
-            var directSource = TryReadText(componentObject["src"]);
-            if (directSource is not null)
-            {
-                return directSource;
-            }
+            componentObject = resolvedComponentObject;
+            return new NuiImageBindingValues(
+                ResolveStringField(componentId, componentObject, dataModel, "src"),
+                ResolveStringField(componentId, componentObject, dataModel, "fit"),
+                ResolveStringField(componentId, componentObject, dataModel, "resizeMode"));
         }
 
-        return TryReadText(dataModel.Get($"{componentId}.src"))
-            ?? TryReadText(dataModel.Get(componentId));
+        return new NuiImageBindingValues(
+            ResolveStringField(componentId, componentObject, dataModel, "src"),
+            ResolveStringField(componentId, componentObject, dataModel, "fit"),
+            ResolveStringField(componentId, componentObject, dataModel, "resizeMode"));
     }
 
-    private static string? ResolveButtonLabelValue(string componentId, SurfaceDefinition definition, DataModel dataModel)
+    private static NuiButtonBindingValues ResolveButtonValues(string componentId, SurfaceDefinition definition, DataModel dataModel)
     {
+        JsonObject? componentObject = null;
         if (definition.Components.TryGetPropertyValue(componentId, out var componentNode)
-            && componentNode is JsonObject componentObject)
+            && componentNode is JsonObject resolvedComponentObject)
         {
-            var propsText = TryReadText(componentObject["props"]?["text"]);
-            if (propsText is not null)
-            {
-                return propsText;
-            }
+            componentObject = resolvedComponentObject;
+            return new NuiButtonBindingValues(
+                ResolveButtonLabelField(componentId, componentObject, dataModel),
+                ResolveBooleanField(componentId, componentObject, dataModel, "enabled"),
+                ResolveStringField(componentId, componentObject, dataModel, "variant"));
+        }
 
-            var propsLabel = TryReadText(componentObject["props"]?["label"]);
-            if (propsLabel is not null)
-            {
-                return propsLabel;
-            }
+        return new NuiButtonBindingValues(
+            ResolveButtonLabelField(componentId, componentObject, dataModel),
+            ResolveBooleanField(componentId, componentObject, dataModel, "enabled"),
+            ResolveStringField(componentId, componentObject, dataModel, "variant"));
+    }
 
-            var directText = TryReadText(componentObject["text"]);
-            if (directText is not null)
-            {
-                return directText;
-            }
+    private static string? TryReadText(JsonNode? value)
+        => value?.ToString();
 
-            var directLabel = TryReadText(componentObject["label"]);
-            if (directLabel is not null)
-            {
-                return directLabel;
-            }
+    private static string? ResolveStringField(
+        string componentId,
+        JsonObject? componentObject,
+        DataModel dataModel,
+        string field)
+    {
+        var propsField = TryReadText(componentObject?["props"]?[field]);
+        if (propsField is not null)
+        {
+            return propsField;
+        }
+
+        var directField = TryReadText(componentObject?[field]);
+        if (directField is not null)
+        {
+            return directField;
+        }
+
+        var modelField = TryReadText(dataModel.Get($"{componentId}.{field}"));
+        if (modelField is not null)
+        {
+            return modelField;
+        }
+
+        if (field == "text")
+        {
+            return TryReadText(dataModel.Get(componentId));
+        }
+
+        return null;
+    }
+
+    private static string? ResolveButtonLabelField(
+        string componentId,
+        JsonObject? componentObject,
+        DataModel dataModel)
+    {
+        var propsText = TryReadText(componentObject?["props"]?["text"]);
+        if (propsText is not null)
+        {
+            return propsText;
+        }
+
+        var propsLabel = TryReadText(componentObject?["props"]?["label"]);
+        if (propsLabel is not null)
+        {
+            return propsLabel;
+        }
+
+        var directText = TryReadText(componentObject?["text"]);
+        if (directText is not null)
+        {
+            return directText;
+        }
+
+        var directLabel = TryReadText(componentObject?["label"]);
+        if (directLabel is not null)
+        {
+            return directLabel;
         }
 
         return TryReadText(dataModel.Get($"{componentId}.text"))
@@ -409,8 +536,49 @@ public sealed class NuiBindingHooks : ITizenBindingHooks
             ?? TryReadText(dataModel.Get(componentId));
     }
 
-    private static string? TryReadText(JsonNode? value)
-        => value?.ToString();
+    private static bool? ResolveBooleanField(
+        string componentId,
+        JsonObject? componentObject,
+        DataModel dataModel,
+        string field)
+    {
+        var propsField = TryReadBool(componentObject?["props"]?[field]);
+        if (propsField.HasValue)
+        {
+            return propsField;
+        }
+
+        var directField = TryReadBool(componentObject?[field]);
+        if (directField.HasValue)
+        {
+            return directField;
+        }
+
+        return TryReadBool(dataModel.Get($"{componentId}.{field}"));
+    }
+
+    private static bool? TryReadBool(JsonNode? value)
+    {
+        if (value is null)
+        {
+            return null;
+        }
+
+        if (value is JsonValue jsonValue)
+        {
+            if (jsonValue.TryGetValue<bool>(out var boolValue))
+            {
+                return boolValue;
+            }
+        }
+
+        if (bool.TryParse(value.ToString(), out var parsed))
+        {
+            return parsed;
+        }
+
+        return null;
+    }
 
     private static NuiControlObject GetOrCreateControl(
         IDictionary<string, NuiControlObject> controls,
