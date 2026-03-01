@@ -49,6 +49,60 @@ public sealed class NullTizenBindingHooks : ITizenBindingHooks
     public void Remove(string surfaceId) { }
 }
 
+public sealed class PlaceholderRealTizenBindingHooks : ITizenBindingHooks
+{
+    private bool _initialized;
+
+    public PlaceholderRealTizenBindingHooks(
+        bool hostSupportsNativeBinding,
+        string bindingName = "tizen-phase-a-placeholder-binding")
+    {
+        HostSupportsNativeBinding = hostSupportsNativeBinding;
+        BindingName = string.IsNullOrWhiteSpace(bindingName)
+            ? "tizen-phase-a-placeholder-binding"
+            : bindingName.Trim();
+    }
+
+    public bool HostSupportsNativeBinding { get; }
+    public string BindingName { get; }
+    public bool SupportsRealBinding => true;
+    public bool CanRender => HostSupportsNativeBinding;
+    public bool CanRemove => HostSupportsNativeBinding;
+    public bool IsAvailable() => HostSupportsNativeBinding;
+
+    public void Initialize()
+    {
+        if (!HostSupportsNativeBinding)
+        {
+            throw new InvalidOperationException(
+                $"Binding '{BindingName}' is unavailable for current host semantics.");
+        }
+
+        _initialized = true;
+    }
+
+    public void Render(string surfaceId, SurfaceDefinition definition, DataModel dataModel)
+    {
+        EnsureInitialized();
+        // TODO(phase-b): Replace deterministic no-op with actual Tizen native render binding.
+    }
+
+    public void Remove(string surfaceId)
+    {
+        EnsureInitialized();
+        // TODO(phase-b): Replace deterministic no-op with actual Tizen native remove binding.
+    }
+
+    private void EnsureInitialized()
+    {
+        if (!_initialized)
+        {
+            throw new InvalidOperationException(
+                $"Binding '{BindingName}' must be initialized before runtime operations.");
+        }
+    }
+}
+
 public sealed class TizenRuntimeAdapter(ITizenBindingHooks bindingHooks) : ITizenRuntimeAdapter
 {
     private readonly ITizenBindingHooks _bindingHooks = bindingHooks ?? throw new ArgumentNullException(nameof(bindingHooks));

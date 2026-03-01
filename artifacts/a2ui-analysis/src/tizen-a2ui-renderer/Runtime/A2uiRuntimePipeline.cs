@@ -115,6 +115,17 @@ public sealed class A2uiRuntimePipeline : IDisposable
                 $"Runtime adapter '{adapterStatus.AdapterType}' did not complete initialization."));
         }
 
+        if (_options.EnforceProductionReadiness && !adapterStatus.Capabilities.SupportsRealTizenBinding)
+        {
+            diagnostics.Add(new A2uiError(
+                ErrorCodes.RuntimeAdapterIntegrationInvalid,
+                $"Runtime adapter '{adapterStatus.AdapterType}' is not production-ready: real Tizen binding support is required."));
+        }
+
+        diagnostics = diagnostics
+            .DistinctBy(d => $"{d.Code}|{d.Message}|{d.SurfaceId}|{d.FunctionCallId}")
+            .ToList();
+
         foreach (var diagnostic in diagnostics)
         {
             _startupDiagnostics.Add(diagnostic);
