@@ -54,6 +54,31 @@ public sealed record NuiSurfaceBindingPlan(
     string RootId,
     IReadOnlyList<NuiComponentBinding> Components);
 
+public sealed record NuiMaterializedNode(
+    string ComponentId,
+    string Type,
+    string? Text);
+
+public sealed record NuiSkippedContract(
+    string ComponentId,
+    string ComponentType,
+    string Reason);
+
+public sealed class UnsupportedNuiContractException(
+    string componentId,
+    string componentType,
+    string reason) : InvalidOperationException(reason)
+{
+    public string ComponentId { get; } = componentId;
+    public string ComponentType { get; } = componentType;
+}
+
+public sealed record NuiSurfaceRenderState(
+    string SurfaceId,
+    string RootId,
+    IReadOnlyDictionary<string, NuiMaterializedNode> Nodes,
+    IReadOnlyList<NuiSkippedContract> SkippedContracts);
+
 public sealed class NullTizenBindingHooks : ITizenBindingHooks
 {
     public string BindingName => nameof(NullTizenBindingHooks);
@@ -68,19 +93,25 @@ public sealed class NullTizenBindingHooks : ITizenBindingHooks
 
 public sealed class NuiBindingHooks : ITizenBindingHooks
 {
+    private readonly Dictionary<string, Dictionary<string, NuiMaterializedNode>> _surfaceNodes = [];
+    private readonly Dictionary<string, List<NuiSkippedContract>> _surfaceSkippedContracts = [];
+    private readonly Dictionary<string, string> _surfaceRoots = [];
     private bool _initialized;
 
     public NuiBindingHooks(
         bool hostSupportsNativeBinding,
+        bool strictUnsupportedContracts = false,
         string bindingName = "tizen-nui-binding-scaffold")
     {
         HostSupportsNativeBinding = hostSupportsNativeBinding;
+        StrictUnsupportedContracts = strictUnsupportedContracts;
         BindingName = string.IsNullOrWhiteSpace(bindingName)
             ? "tizen-nui-binding-scaffold"
             : bindingName.Trim();
     }
 
     public bool HostSupportsNativeBinding { get; }
+    public bool StrictUnsupportedContracts { get; }
     public string BindingName { get; }
     public NuiSurfaceBindingPlan? LastBindingPlan { get; private set; }
     public bool SupportsRealBinding => true;
@@ -103,13 +134,70 @@ public sealed class NuiBindingHooks : ITizenBindingHooks
     {
         EnsureInitialized();
         LastBindingPlan = BuildBindingPlan(surfaceId, definition);
-        // TODO(phase-b): Replace NUI binding scaffold with actual DALi/NUI control creation and patching.
+
+        if (!_surfaceNodes.TryGetValue(surfaceId, out var nodes))
+        {
+            nodes = new Dictionary<string, NuiMaterializedNode>(StringComparer.Ordinal);
+            _surfaceNodes[surfaceId] = nodes;
+        }
+
+        var touchedComponentIds = new HashSet<string>(StringComparer.Ordinal);
+        var skippedContracts = new List<NuiSkippedContract>();
+
+        foreach (var component in LastBindingPlan.Components)
+        {
+            switch (component.ContractKind)
+            {
+                case NuiComponentContractKind.Text:
+                    nodes[component.ComponentId] = new NuiMaterializedNode(
+                        component.ComponentId,
+                        Type: "Text",
+                        Text: ResolveTextValue(component.ComponentId, definition, dataModel));
+                    touchedComponentIds.Add(component.ComponentId);
+                    break;
+                case NuiComponentContractKind.Container:
+                    nodes[component.ComponentId] = new NuiMaterializedNode(
+                        component.ComponentId,
+                        Type: "Container",
+                        Text: null);
+                    touchedComponentIds.Add(component.ComponentId);
+                    break;
+                default:
+                    var reason = $"Unsupported component contract '{component.ComponentType}'.";
+                    skippedContracts.Add(new NuiSkippedContract(
+                        component.ComponentId,
+                        component.ComponentType,
+                        reason));
+
+                    if (StrictUnsupportedContracts)
+                    {
+                        throw new UnsupportedNuiContractException(
+                            component.ComponentId,
+                            component.ComponentType,
+                            reason);
+                    }
+                    break;
+            }
+        }
+
+        var staleNodeIds = nodes.Keys
+            .Where(componentId => !touchedComponentIds.Contains(componentId))
+            .ToList();
+        foreach (var staleNodeId in staleNodeIds)
+        {
+            nodes.Remove(staleNodeId);
+        }
+
+        _surfaceRoots[surfaceId] = definition.RootId;
+        _surfaceSkippedContracts[surfaceId] = skippedContracts;
     }
 
     public void Remove(string surfaceId)
     {
         EnsureInitialized();
-        // TODO(phase-b): Replace deterministic no-op with actual Tizen native remove binding.
+        _surfaceNodes.Remove(surfaceId);
+        _surfaceSkippedContracts.Remove(surfaceId);
+        _surfaceRoots.Remove(surfaceId);
     }
 
     private void EnsureInitialized()
@@ -146,6 +234,54 @@ public sealed class NuiBindingHooks : ITizenBindingHooks
             _ => NuiComponentContractKind.Unsupported
         };
     }
+
+    public NuiSurfaceRenderState? GetSurfaceRenderState(string surfaceId)
+    {
+        if (!_surfaceNodes.TryGetValue(surfaceId, out var nodes))
+        {
+            return null;
+        }
+
+        var rootId = _surfaceRoots.GetValueOrDefault(surfaceId, string.Empty);
+        var skipped = _surfaceSkippedContracts.GetValueOrDefault(surfaceId) ?? [];
+        var nodesSnapshot = nodes
+            .OrderBy(entry => entry.Key, StringComparer.Ordinal)
+            .ToDictionary(entry => entry.Key, entry => entry.Value, StringComparer.Ordinal);
+        var skippedSnapshot = skipped
+            .OrderBy(entry => entry.ComponentId, StringComparer.Ordinal)
+            .ToList();
+
+        return new NuiSurfaceRenderState(
+            surfaceId,
+            rootId,
+            nodesSnapshot,
+            skippedSnapshot);
+    }
+
+    private static string? ResolveTextValue(string componentId, SurfaceDefinition definition, DataModel dataModel)
+    {
+        if (definition.Components.TryGetPropertyValue(componentId, out var componentNode)
+            && componentNode is JsonObject componentObject)
+        {
+            var propsText = TryReadText(componentObject["props"]?["text"]);
+            if (propsText is not null)
+            {
+                return propsText;
+            }
+
+            var directText = TryReadText(componentObject["text"]);
+            if (directText is not null)
+            {
+                return directText;
+            }
+        }
+
+        return TryReadText(dataModel.Get($"{componentId}.text"))
+            ?? TryReadText(dataModel.Get(componentId));
+    }
+
+    private static string? TryReadText(JsonNode? value)
+        => value?.ToString();
 }
 
 public sealed class TizenRuntimeAdapter(ITizenBindingHooks bindingHooks) : ITizenRuntimeAdapter
@@ -225,7 +361,18 @@ public sealed class TizenRuntimeAdapter(ITizenBindingHooks bindingHooks) : ITize
             throw new InvalidOperationException("Tizen runtime adapter is not initialized.");
         }
 
-        _bindingHooks.Render(surfaceId, definition, dataModel);
+        try
+        {
+            _bindingHooks.Render(surfaceId, definition, dataModel);
+        }
+        catch (UnsupportedNuiContractException ex)
+        {
+            throw new InvalidOperationException(
+                $"{ErrorCodes.RuntimeAdapterCapabilityMissing}: " +
+                $"Tizen binding '{_bindingHooks.BindingName}' cannot render unsupported contract " +
+                $"'{ex.ComponentType}' for component '{ex.ComponentId}'.",
+                ex);
+        }
     }
 
     public void Remove(string surfaceId)
