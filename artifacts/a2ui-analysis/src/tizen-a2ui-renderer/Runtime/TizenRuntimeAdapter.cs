@@ -40,6 +40,8 @@ public interface ITizenBindingHooks
 public enum NuiComponentContractKind
 {
     Text,
+    Image,
+    Button,
     Container,
     Unsupported
 }
@@ -57,7 +59,8 @@ public sealed record NuiSurfaceBindingPlan(
 public sealed record NuiMaterializedNode(
     string ComponentId,
     string Type,
-    string? Text);
+    string? Text,
+    string? Source);
 
 public sealed record NuiSkippedContract(
     string ComponentId,
@@ -152,14 +155,32 @@ public sealed class NuiBindingHooks : ITizenBindingHooks
                     nodes[component.ComponentId] = new NuiMaterializedNode(
                         component.ComponentId,
                         Type: "Text",
-                        Text: ResolveTextValue(component.ComponentId, definition, dataModel));
+                        Text: ResolveTextValue(component.ComponentId, definition, dataModel),
+                        Source: null);
+                    touchedComponentIds.Add(component.ComponentId);
+                    break;
+                case NuiComponentContractKind.Image:
+                    nodes[component.ComponentId] = new NuiMaterializedNode(
+                        component.ComponentId,
+                        Type: "Image",
+                        Text: null,
+                        Source: ResolveImageSourceValue(component.ComponentId, definition, dataModel));
+                    touchedComponentIds.Add(component.ComponentId);
+                    break;
+                case NuiComponentContractKind.Button:
+                    nodes[component.ComponentId] = new NuiMaterializedNode(
+                        component.ComponentId,
+                        Type: "Button",
+                        Text: ResolveButtonLabelValue(component.ComponentId, definition, dataModel),
+                        Source: null);
                     touchedComponentIds.Add(component.ComponentId);
                     break;
                 case NuiComponentContractKind.Container:
                     nodes[component.ComponentId] = new NuiMaterializedNode(
                         component.ComponentId,
                         Type: "Container",
-                        Text: null);
+                        Text: null,
+                        Source: null);
                     touchedComponentIds.Add(component.ComponentId);
                     break;
                 default:
@@ -230,6 +251,8 @@ public sealed class NuiBindingHooks : ITizenBindingHooks
         return normalized switch
         {
             "text" => NuiComponentContractKind.Text,
+            "image" => NuiComponentContractKind.Image,
+            "button" => NuiComponentContractKind.Button,
             "column" or "row" or "container" => NuiComponentContractKind.Container,
             _ => NuiComponentContractKind.Unsupported
         };
@@ -277,6 +300,63 @@ public sealed class NuiBindingHooks : ITizenBindingHooks
         }
 
         return TryReadText(dataModel.Get($"{componentId}.text"))
+            ?? TryReadText(dataModel.Get(componentId));
+    }
+
+    private static string? ResolveImageSourceValue(string componentId, SurfaceDefinition definition, DataModel dataModel)
+    {
+        if (definition.Components.TryGetPropertyValue(componentId, out var componentNode)
+            && componentNode is JsonObject componentObject)
+        {
+            var propsSource = TryReadText(componentObject["props"]?["src"]);
+            if (propsSource is not null)
+            {
+                return propsSource;
+            }
+
+            var directSource = TryReadText(componentObject["src"]);
+            if (directSource is not null)
+            {
+                return directSource;
+            }
+        }
+
+        return TryReadText(dataModel.Get($"{componentId}.src"))
+            ?? TryReadText(dataModel.Get(componentId));
+    }
+
+    private static string? ResolveButtonLabelValue(string componentId, SurfaceDefinition definition, DataModel dataModel)
+    {
+        if (definition.Components.TryGetPropertyValue(componentId, out var componentNode)
+            && componentNode is JsonObject componentObject)
+        {
+            var propsText = TryReadText(componentObject["props"]?["text"]);
+            if (propsText is not null)
+            {
+                return propsText;
+            }
+
+            var propsLabel = TryReadText(componentObject["props"]?["label"]);
+            if (propsLabel is not null)
+            {
+                return propsLabel;
+            }
+
+            var directText = TryReadText(componentObject["text"]);
+            if (directText is not null)
+            {
+                return directText;
+            }
+
+            var directLabel = TryReadText(componentObject["label"]);
+            if (directLabel is not null)
+            {
+                return directLabel;
+            }
+        }
+
+        return TryReadText(dataModel.Get($"{componentId}.text"))
+            ?? TryReadText(dataModel.Get($"{componentId}.label"))
             ?? TryReadText(dataModel.Get(componentId));
     }
 
