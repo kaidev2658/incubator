@@ -93,7 +93,7 @@ public class RuntimePipelineTests
             "main"));
 
         Assert.Empty(pipeline.StartupDiagnostics);
-        Assert.Equal("tizen-binding-poc", pipeline.RuntimeAdapterStatus.RuntimeMode);
+        Assert.Equal("tizen-nui", pipeline.RuntimeAdapterStatus.RuntimeMode);
         Assert.True(pipeline.RuntimeAdapterStatus.Capabilities.SupportsRealTizenBinding);
 
         Assert.Equal(4, hooks.Operations.Count);

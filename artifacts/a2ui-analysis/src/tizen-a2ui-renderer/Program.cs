@@ -76,11 +76,11 @@ namespace TizenA2uiRenderer.Runtime
             if (selectedMode == "auto")
             {
                 selectedMode = isTizenHost
-                    ? "tizen-poc"
+                    ? "tizen-nui"
                     : "renderer-bridge";
             }
 
-            var isKnownMode = selectedMode is "null" or "in-memory" or "renderer-bridge" or "tizen-poc";
+            var isKnownMode = selectedMode is "null" or "in-memory" or "renderer-bridge" or "tizen-nui";
             return new RuntimeModeSelection(
                 RequestedMode: requestedMode,
                 NormalizedMode: normalizedMode,
@@ -111,14 +111,30 @@ namespace TizenA2uiRenderer.Runtime
                     });
             }
 
+            if (selectedMode == "tizen-nui" && !selection.IsTizenHost)
+            {
+                logger.Error(
+                    "Runtime mode 'tizen-nui' requested on non-Tizen host, falling back to 'renderer-bridge'.",
+                    fields: new Dictionary<string, object?>
+                    {
+                        [StructuredLogFields.Source] = "program.runtime_mode",
+                        [StructuredLogFields.ErrorComponent] = "runtime",
+                        [StructuredLogFields.ErrorKind] = "integration",
+                        [StructuredLogFields.ErrorCode] = ErrorCodes.RuntimeAdapterIntegrationInvalid,
+                        [StructuredLogFields.ErrorMessage] = "tizen-nui mode requires a Tizen host.",
+                        [StructuredLogFields.RuntimeMode] = "tizen-nui"
+                    });
+                selectedMode = "renderer-bridge";
+            }
+
             return selectedMode switch
             {
                 "null" => new NullTizenRuntimeAdapter(),
                 "in-memory" => new InMemoryRuntimeAdapter(),
                 "renderer-bridge" => new RendererBridgeRuntimeAdapter(new NullRendererBridge()),
-                "tizen-poc" => new TizenRuntimeAdapter(new PlaceholderRealTizenBindingHooks(
+                "tizen-nui" => new TizenRuntimeAdapter(new NuiBindingHooks(
                     hostSupportsNativeBinding: selection.IsTizenHost,
-                    bindingName: "tizen-phase-a-placeholder-binding")),
+                    bindingName: "tizen-nui-binding-scaffold")),
                 _ => new RendererBridgeRuntimeAdapter(new NullRendererBridge())
             };
         }
@@ -153,8 +169,9 @@ namespace TizenA2uiRenderer.Runtime
                 "inmemory" => "in-memory",
                 "bridge" => "renderer-bridge",
                 "rendererbridge" => "renderer-bridge",
-                "tizen" => "tizen-poc",
-                "tizen-binding" => "tizen-poc",
+                "tizen" => "tizen-nui",
+                "tizen-binding" => "tizen-nui",
+                "tizen-poc" => "tizen-nui",
                 _ => normalized
             };
         }
