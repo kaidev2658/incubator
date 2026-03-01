@@ -93,21 +93,49 @@ public class NuiBindingContractsTests
         Assert.Equal(NuiComponentContractKind.Container, initialState.Nodes["root"].ContractKind);
         Assert.Null(initialState.Nodes["root"].Text);
         Assert.Null(initialState.Nodes["root"].Source);
+        Assert.Null(initialState.Nodes["root"].Color);
+        Assert.Null(initialState.Nodes["root"].Font);
+        Assert.Null(initialState.Nodes["root"].Alignment);
+        Assert.Null(initialState.Nodes["root"].Fit);
+        Assert.Null(initialState.Nodes["root"].ResizeMode);
+        Assert.Null(initialState.Nodes["root"].Enabled);
+        Assert.Null(initialState.Nodes["root"].Variant);
         Assert.Equal("Text", initialState.Nodes["title"].Type);
         Assert.Equal("main:title", initialState.Nodes["title"].ControlId);
         Assert.Equal(NuiComponentContractKind.Text, initialState.Nodes["title"].ContractKind);
         Assert.Equal("Boot", initialState.Nodes["title"].Text);
         Assert.Null(initialState.Nodes["title"].Source);
+        Assert.Null(initialState.Nodes["title"].Color);
+        Assert.Null(initialState.Nodes["title"].Font);
+        Assert.Null(initialState.Nodes["title"].Alignment);
+        Assert.Null(initialState.Nodes["title"].Fit);
+        Assert.Null(initialState.Nodes["title"].ResizeMode);
+        Assert.Null(initialState.Nodes["title"].Enabled);
+        Assert.Null(initialState.Nodes["title"].Variant);
         Assert.Equal("Image", initialState.Nodes["avatar"].Type);
         Assert.Equal("main:avatar", initialState.Nodes["avatar"].ControlId);
         Assert.Equal(NuiComponentContractKind.Image, initialState.Nodes["avatar"].ContractKind);
         Assert.Null(initialState.Nodes["avatar"].Text);
         Assert.Equal("boot.png", initialState.Nodes["avatar"].Source);
+        Assert.Null(initialState.Nodes["avatar"].Color);
+        Assert.Null(initialState.Nodes["avatar"].Font);
+        Assert.Null(initialState.Nodes["avatar"].Alignment);
+        Assert.Null(initialState.Nodes["avatar"].Fit);
+        Assert.Null(initialState.Nodes["avatar"].ResizeMode);
+        Assert.Null(initialState.Nodes["avatar"].Enabled);
+        Assert.Null(initialState.Nodes["avatar"].Variant);
         Assert.Equal("Button", initialState.Nodes["cta"].Type);
         Assert.Equal("main:cta", initialState.Nodes["cta"].ControlId);
         Assert.Equal(NuiComponentContractKind.Button, initialState.Nodes["cta"].ContractKind);
         Assert.Equal("Start", initialState.Nodes["cta"].Text);
         Assert.Null(initialState.Nodes["cta"].Source);
+        Assert.Null(initialState.Nodes["cta"].Color);
+        Assert.Null(initialState.Nodes["cta"].Font);
+        Assert.Null(initialState.Nodes["cta"].Alignment);
+        Assert.Null(initialState.Nodes["cta"].Fit);
+        Assert.Null(initialState.Nodes["cta"].ResizeMode);
+        Assert.Null(initialState.Nodes["cta"].Enabled);
+        Assert.Null(initialState.Nodes["cta"].Variant);
         Assert.Empty(initialState.SkippedContracts);
 
         var initialControlIds = initialState.Nodes
@@ -204,25 +232,44 @@ public class NuiBindingContractsTests
                 ["avatar"] = new JsonObject
                 {
                     ["component"] = "Image",
-                    ["props"] = new JsonObject { ["src"] = "props.png" }
+                    ["props"] = new JsonObject
+                    {
+                        ["src"] = "props.png",
+                        ["fit"] = "contain",
+                        ["resizeMode"] = "center"
+                    }
                 },
                 ["cta"] = new JsonObject
                 {
                     ["component"] = "Button",
-                    ["props"] = new JsonObject { ["text"] = "PropsText", ["label"] = "PropsLabel" }
+                    ["props"] = new JsonObject
+                    {
+                        ["text"] = "PropsText",
+                        ["label"] = "PropsLabel",
+                        ["enabled"] = true,
+                        ["variant"] = "primary"
+                    }
                 }
             });
         var model = new DataModel();
         model.Set("avatar.src", "model.png");
+        model.Set("avatar.fit", "cover");
+        model.Set("avatar.resizeMode", "stretch");
         model.Set("cta.text", "ModelText");
         model.Set("cta.label", "ModelLabel");
+        model.Set("cta.enabled", false);
+        model.Set("cta.variant", "secondary");
 
         hooks.Render("main", definition, model);
 
         var state = hooks.GetSurfaceRenderState("main");
         Assert.NotNull(state);
         Assert.Equal("props.png", state!.Nodes["avatar"].Source);
+        Assert.Equal("contain", state.Nodes["avatar"].Fit);
+        Assert.Equal("center", state.Nodes["avatar"].ResizeMode);
         Assert.Equal("PropsText", state.Nodes["cta"].Text);
+        Assert.Equal(true, state.Nodes["cta"].Enabled);
+        Assert.Equal("primary", state.Nodes["cta"].Variant);
     }
 
     [Fact]
@@ -242,14 +289,71 @@ public class NuiBindingContractsTests
             });
         var model = new DataModel();
         model.Set("avatar.src", "model.png");
+        model.Set("avatar.fit", "cover");
+        model.Set("avatar.resizeMode", "stretch");
         model.Set("cta.label", "ModelLabel");
+        model.Set("cta.enabled", false);
+        model.Set("cta.variant", "secondary");
 
         hooks.Render("main", definition, model);
 
         var state = hooks.GetSurfaceRenderState("main");
         Assert.NotNull(state);
         Assert.Equal("model.png", state!.Nodes["avatar"].Source);
+        Assert.Equal("cover", state.Nodes["avatar"].Fit);
+        Assert.Equal("stretch", state.Nodes["avatar"].ResizeMode);
         Assert.Equal("ModelLabel", state.Nodes["cta"].Text);
+        Assert.Equal(false, state.Nodes["cta"].Enabled);
+        Assert.Equal("secondary", state.Nodes["cta"].Variant);
+    }
+
+    [Fact]
+    public void NuiBindingHooks_Render_Uses_Component_Props_First_And_DataModel_Fallback_For_Text_Styling()
+    {
+        var hooks = new NuiBindingHooks(hostSupportsNativeBinding: true);
+        hooks.Initialize();
+
+        var definition = new SurfaceDefinition(
+            "main",
+            "root",
+            new JsonObject
+            {
+                ["root"] = new JsonObject { ["component"] = "Column" },
+                ["titleProps"] = new JsonObject
+                {
+                    ["component"] = "Text",
+                    ["props"] = new JsonObject
+                    {
+                        ["text"] = "Props",
+                        ["color"] = "#ff0000",
+                        ["font"] = "Sans 24",
+                        ["alignment"] = "center"
+                    }
+                },
+                ["titleModel"] = new JsonObject { ["component"] = "Text" }
+            });
+        var model = new DataModel();
+        model.Set("titleProps.text", "ModelText");
+        model.Set("titleProps.color", "#00ff00");
+        model.Set("titleProps.font", "Sans 18");
+        model.Set("titleProps.alignment", "left");
+        model.Set("titleModel.text", "FromModel");
+        model.Set("titleModel.color", "#123456");
+        model.Set("titleModel.font", "Serif 18");
+        model.Set("titleModel.alignment", "right");
+
+        hooks.Render("main", definition, model);
+
+        var state = hooks.GetSurfaceRenderState("main");
+        Assert.NotNull(state);
+        Assert.Equal("Props", state!.Nodes["titleProps"].Text);
+        Assert.Equal("#ff0000", state.Nodes["titleProps"].Color);
+        Assert.Equal("Sans 24", state.Nodes["titleProps"].Font);
+        Assert.Equal("center", state.Nodes["titleProps"].Alignment);
+        Assert.Equal("FromModel", state.Nodes["titleModel"].Text);
+        Assert.Equal("#123456", state.Nodes["titleModel"].Color);
+        Assert.Equal("Serif 18", state.Nodes["titleModel"].Font);
+        Assert.Equal("right", state.Nodes["titleModel"].Alignment);
     }
 
     [Fact]
