@@ -1,8 +1,15 @@
 # STATUS — dotnet-assembly-inspector
 
-Last updated: 2026-03-05 11:11 KST
+Last updated: 2026-03-05 11:54 KST
 
 ## Current Status
+- 2026-03-05 11:54 KST: Phase 3-2 namespace/type chunking 출력 구현 완료.
+  - CLI 옵션 추가: `--chunk <namespace|type>` (기본값 `none`, 기존 출력 완전 호환)
+  - chunk 출력 경로 규칙:
+    - namespace: `chunks/namespaces/<NNNN>-<sanitized-namespace>.json`
+    - type: `chunks/types/<NNNN>-<sanitized-type>.json`
+  - 구현 동작: 기존 `api-index.json`, `api-summary.md`는 항상 생성되고, chunk 옵션 지정 시 추가 JSON 분할 출력 생성
+  - 테스트 보강: chunk 파일 생성/명명 규칙 검증 2건 추가
 - 2026-03-05 11:11 KST: Phase 3-1 compact index format 최적화 구현 완료.
   - CLI 옵션 추가: `--compact-json` (alias `--compact`), 기본 출력은 기존 JSON 스키마 유지
   - `JsonReportWriter` compact 모드(`compact-v1`) 추가: 축약 키(`f/a/s/g/n/x`) 및 namespace/type/member/extension 구조 경량화
@@ -49,10 +56,8 @@ Last updated: 2026-03-05 11:11 KST
   - 입력 모드(.dll/.nupkg/dir), TFM 옵션 동작, 실행 예시 추가
 
 ## Next Immediate Actions
-1. Phase 3-1: Compact index format 설계/적용 (AI 소비 토큰 절감용).
-2. Phase 3-2: Namespace/type chunking 출력 추가 (`--chunk` 계열 옵션 검토 포함).
-3. Phase 3-3: 코딩 에이전트용 프롬프트 템플릿 초안 작성 및 README/문서 반영.
-4. 회귀 검증: 기존 JSON/MD 출력 호환성 테스트 보강.
+1. Phase 3-3: 코딩 에이전트용 프롬프트 템플릿 초안 작성 및 README/문서 반영.
+2. 회귀 검증: compact + chunk 조합 시나리오 테스트 케이스 추가 검토.
 
 ## Blockers
 - 치명적 blocker 없음.

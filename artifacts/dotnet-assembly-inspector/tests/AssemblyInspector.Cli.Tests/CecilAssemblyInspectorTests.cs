@@ -132,6 +132,58 @@ public sealed class CecilAssemblyInspectorTests
     }
 
     [Fact]
+    public async Task RunAsync_WithNamespaceChunking_WritesPredictableChunkFileNames()
+    {
+        using var workspace = new TestWorkspace();
+        var assemblyPath = workspace.CreateStandaloneAssembly();
+        var app = CreateApp(new StaticAssemblyInspector(CreateChunkFixtureIndex(assemblyPath)));
+        var options = new InspectorOptions(
+            assemblyPath,
+            workspace.OutputDirectory,
+            Tfm: null,
+            AllTfms: false,
+            CompactJson: false,
+            Chunking: ChunkingStrategy.Namespace);
+
+        await app.RunAsync(options);
+
+        var chunkDirectory = Path.Combine(workspace.OutputDirectory, "chunks", "namespaces");
+        var files = Directory.GetFiles(chunkDirectory, "*.json", SearchOption.TopDirectoryOnly)
+            .Select(Path.GetFileName)
+            .OrderBy(name => name, StringComparer.Ordinal)
+            .ToArray();
+
+        Assert.Equal(new[] { "0001-alpha-core.json", "0002-zeta-utils.json" }, files);
+        Assert.True(File.Exists(Path.Combine(workspace.OutputDirectory, "api-index.json")));
+        Assert.True(File.Exists(Path.Combine(workspace.OutputDirectory, "api-summary.md")));
+    }
+
+    [Fact]
+    public async Task RunAsync_WithTypeChunking_WritesPredictableChunkFileNames()
+    {
+        using var workspace = new TestWorkspace();
+        var assemblyPath = workspace.CreateStandaloneAssembly();
+        var app = CreateApp(new StaticAssemblyInspector(CreateChunkFixtureIndex(assemblyPath)));
+        var options = new InspectorOptions(
+            assemblyPath,
+            workspace.OutputDirectory,
+            Tfm: null,
+            AllTfms: false,
+            CompactJson: false,
+            Chunking: ChunkingStrategy.Type);
+
+        await app.RunAsync(options);
+
+        var chunkDirectory = Path.Combine(workspace.OutputDirectory, "chunks", "types");
+        var files = Directory.GetFiles(chunkDirectory, "*.json", SearchOption.TopDirectoryOnly)
+            .Select(Path.GetFileName)
+            .OrderBy(name => name, StringComparer.Ordinal)
+            .ToArray();
+
+        Assert.Equal(new[] { "0001-alpha-core-widget.json", "0002-zeta-utils-helper.json" }, files);
+    }
+
+    [Fact]
     public void Inspect_FormatsNestedTypeSignaturesWithDeclaringType()
     {
         var inspector = new CecilAssemblyInspector();
@@ -190,6 +242,39 @@ public sealed class CecilAssemblyInspectorTests
     private static InspectorApp CreateApp(IAssemblyInspector? inspector = null)
     {
         return new InspectorApp(inspector ?? new CecilAssemblyInspector(), new JsonReportWriter(), new MarkdownReportWriter());
+    }
+
+    private static ApiIndex CreateChunkFixtureIndex(string sourcePath)
+    {
+        return new ApiIndex(
+            "ChunkFixture",
+            sourcePath,
+            DateTimeOffset.UtcNow,
+            [
+                new NamespaceIndex(
+                    "Zeta.Utils",
+                    [
+                        new TypeIndex(
+                            "Helper",
+                            "Zeta.Utils.Helper",
+                            "class",
+                            null,
+                            [],
+                            [])
+                    ]),
+                new NamespaceIndex(
+                    "Alpha.Core",
+                    [
+                        new TypeIndex(
+                            "Widget",
+                            "Alpha.Core.Widget",
+                            "class",
+                            null,
+                            [],
+                            [])
+                    ])
+            ],
+            []);
     }
 
     private sealed class TestWorkspace : IDisposable
@@ -279,4 +364,19 @@ public sealed class CecilAssemblyInspectorTests
     }
 
     private sealed record InspectionInvocation(string AssemblyPath, IReadOnlyList<string> DependencySearchPaths);
+
+    private sealed class StaticAssemblyInspector : IAssemblyInspector
+    {
+        private readonly ApiIndex _index;
+
+        public StaticAssemblyInspector(ApiIndex index)
+        {
+            _index = index;
+        }
+
+        public ApiIndex Inspect(string assemblyPath, IEnumerable<string>? dependencySearchPaths = null)
+        {
+            return _index with { SourcePath = assemblyPath };
+        }
+    }
 }

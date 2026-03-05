@@ -61,7 +61,7 @@ public sealed class InspectorApp
         foreach (var dll in dlls)
         {
             var dllDir = Path.Combine(outputDirectory, Path.GetFileNameWithoutExtension(dll));
-            await ProcessDllAsync(dll, dllDir, options.CompactJson, dependencySearchPaths);
+            await ProcessDllAsync(dll, dllDir, options.CompactJson, options.Chunking, dependencySearchPaths);
         }
     }
 
@@ -78,7 +78,7 @@ public sealed class InspectorApp
         {
             var assemblyDirectory = Path.GetDirectoryName(Path.GetFullPath(inputFile));
             var dependencySearchPaths = BuildDependencySearchPaths(EnumerateNearbyDependencyDirectories(assemblyDirectory));
-            await ProcessDllAsync(inputFile, outputDirectory, options.CompactJson, dependencySearchPaths);
+            await ProcessDllAsync(inputFile, outputDirectory, options.CompactJson, options.Chunking, dependencySearchPaths);
             return;
         }
 
@@ -139,7 +139,7 @@ public sealed class InspectorApp
                 {
                     var dllName = Path.GetFileNameWithoutExtension(dll);
                     var outDir = Path.Combine(outputDirectory, tfmGroup.Key, dllName);
-                    await ProcessDllAsync(dll, outDir, options.CompactJson, dependencySearchPaths);
+                    await ProcessDllAsync(dll, outDir, options.CompactJson, options.Chunking, dependencySearchPaths);
                 }
             }
         }
@@ -164,7 +164,12 @@ public sealed class InspectorApp
         return "unknown-tfm";
     }
 
-    private async Task ProcessDllAsync(string dllPath, string outputDirectory, bool compactJson, IReadOnlyList<string>? dependencySearchPaths = null)
+    private async Task ProcessDllAsync(
+        string dllPath,
+        string outputDirectory,
+        bool compactJson,
+        ChunkingStrategy chunking,
+        IReadOnlyList<string>? dependencySearchPaths = null)
     {
         Directory.CreateDirectory(outputDirectory);
 
@@ -174,6 +179,12 @@ public sealed class InspectorApp
 
         await _jsonWriter.WriteAsync(apiIndex, jsonPath, compactJson);
         await _markdownWriter.WriteAsync(apiIndex, markdownPath);
+
+        if (chunking != ChunkingStrategy.None)
+        {
+            var chunkOutputDirectory = Path.Combine(outputDirectory, "chunks");
+            await _jsonWriter.WriteChunksAsync(apiIndex, chunkOutputDirectory, chunking, compactJson);
+        }
 
         Console.WriteLine($"Wrote {jsonPath}");
         Console.WriteLine($"Wrote {markdownPath}");

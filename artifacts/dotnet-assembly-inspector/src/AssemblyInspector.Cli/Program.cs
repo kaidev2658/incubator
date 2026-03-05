@@ -24,6 +24,7 @@ static InspectorOptions? ParseOptions(string[] args)
     string? tfm = null;
     var allTfms = false;
     var compactJson = false;
+    var chunking = ChunkingStrategy.None;
 
     for (var i = 0; i < args.Length; i++)
     {
@@ -58,6 +59,24 @@ static InspectorOptions? ParseOptions(string[] args)
             continue;
         }
 
+        if (arg == "--chunk")
+        {
+            if (i + 1 >= args.Length)
+            {
+                Console.Error.WriteLine("Missing value for --chunk");
+                return null;
+            }
+
+            var value = args[++i];
+            if (!TryParseChunking(value, out chunking))
+            {
+                Console.Error.WriteLine($"Invalid --chunk value: {value}. Expected one of: namespace, type.");
+                return null;
+            }
+
+            continue;
+        }
+
         if (inputPath is null)
         {
             inputPath = arg;
@@ -85,10 +104,28 @@ static InspectorOptions? ParseOptions(string[] args)
         tfm = null;
     }
 
-    return new InspectorOptions(inputPath, outputDirectory, tfm, allTfms, compactJson);
+    return new InspectorOptions(inputPath, outputDirectory, tfm, allTfms, compactJson, chunking);
 }
 
 static void PrintUsage()
 {
-    Console.WriteLine("Usage: assembly-inspector <input-path(.dll|.nupkg|dir)> [output-dir] [--tfm <TFM>] [--all-tfms] [--compact-json|--compact]");
+    Console.WriteLine("Usage: assembly-inspector <input-path(.dll|.nupkg|dir)> [output-dir] [--tfm <TFM>] [--all-tfms] [--compact-json|--compact] [--chunk <namespace|type>]");
+}
+
+static bool TryParseChunking(string value, out ChunkingStrategy chunking)
+{
+    if (string.Equals(value, "namespace", StringComparison.OrdinalIgnoreCase))
+    {
+        chunking = ChunkingStrategy.Namespace;
+        return true;
+    }
+
+    if (string.Equals(value, "type", StringComparison.OrdinalIgnoreCase))
+    {
+        chunking = ChunkingStrategy.Type;
+        return true;
+    }
+
+    chunking = ChunkingStrategy.None;
+    return false;
 }
