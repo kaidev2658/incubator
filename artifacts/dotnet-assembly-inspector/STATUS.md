@@ -43,10 +43,10 @@ Last updated: 2026-03-05 11:03 KST
   - 입력 모드(.dll/.nupkg/dir), TFM 옵션 동작, 실행 예시 추가
 
 ## Next Immediate Actions
-1. Extension method 전용 인덱스(대상 타입/선언 네임스페이스) 모델 추가.
-2. 중첩 타입/제네릭 제약 조건/명시적 인터페이스 구현 시그니처 정확도 보강.
-3. Extension method 전용 리포트 섹션(JSON/MD) 추가.
-4. TFM 선택 동작 관련 단위 테스트 추가.
+1. Phase 3-1: Compact index format 설계/적용 (AI 소비 토큰 절감용).
+2. Phase 3-2: Namespace/type chunking 출력 추가 (`--chunk` 계열 옵션 검토 포함).
+3. Phase 3-3: 코딩 에이전트용 프롬프트 템플릿 초안 작성 및 README/문서 반영.
+4. 회귀 검증: 기존 JSON/MD 출력 호환성 테스트 보강.
 
 ## Blockers
 - 치명적 blocker 없음.
