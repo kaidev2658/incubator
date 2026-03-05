@@ -1,0 +1,86 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2013/05/nuspec.xsd">
+  <metadata>
+    <id>Tizen.UI.Components.Material</id>
+    <version>1.0.0-rc.4</version>
+    <authors>Samsung Electronics</authors>
+    <license type="expression">Apache-2.0</license>
+    <licenseUrl>https://licenses.nuget.org/Apache-2.0</licenseUrl>
+    <readme>README.md</readme>
+    <projectUrl>https://github.sec.samsung.net/NUI/Tizen.UI</projectUrl>
+    <iconUrl>https://samsungtizenos.com/build/assets/samsung-tizen-os@2x-DWi9C_5A.png</iconUrl>
+    <description>Material component implementations with Material Icons and Roboto fonts.</description>
+    <copyright>© Samsung Electronics Co., Ltd All Rights Reserved.</copyright>
+    <tags>Tizen Tizen.NET TizenX TizenExtension Tizen.UI</tags>
+    <repository type="git" url="https://github.sec.samsung.net/NUI/Tizen.UI" commit="2cf9792771d344caabc48d92c36c87bb1f7452dc" />
+    <dependencies>
+      <group targetFramework="net8.0-tizen10.0">
+        <dependency id="Tizen.UI.Components" version="1.0.0-rc.4" exclude="Build,Analyzers" />
+        <dependency id="Tizen.UI.Primitives2D" version="1.0.0-rc.4" exclude="Build,Analyzers" />
+        <dependency id="Tizen.NET" version="13.0.0.19198" exclude="Build,Analyzers" />
+      </group>
+    </dependencies>
+    <contentFiles>
+      <files include="tizen/res/fonts/Roboto-Regular.ttf" buildAction="None" />
+      <files include="tizen/res/fonts/Roboto-SemiBold.ttf" buildAction="None" />
+      <files include="tizen/res/icons/accessibility.svg" buildAction="None" />
+      <files include="tizen/res/icons/add.svg" buildAction="None" />
+      <files include="tizen/res/icons/arrow_back.svg" buildAction="None" />
+      <files include="tizen/res/icons/arrow_down.svg" buildAction="None" />
+      <files include="tizen/res/icons/arrow_drop_down.svg" buildAction="None" />
+      <files include="tizen/res/icons/arrow_drop_up.svg" buildAction="None" />
+      <files include="tizen/res/icons/arrow_left.svg" buildAction="None" />
+      <files include="tizen/res/icons/arrow_right.svg" buildAction="None" />
+      <files include="tizen/res/icons/arrow_up.svg" buildAction="None" />
+      <files include="tizen/res/icons/camera.svg" buildAction="None" />
+      <files include="tizen/res/icons/check.svg" buildAction="None" />
+      <files include="tizen/res/icons/check_box.svg" buildAction="None" />
+      <files include="tizen/res/icons/check_box_blank.svg" buildAction="None" />
+      <files include="tizen/res/icons/check_circle.svg" buildAction="None" />
+      <files include="tizen/res/icons/close.svg" buildAction="None" />
+      <files include="tizen/res/icons/copy.svg" buildAction="None" />
+      <files include="tizen/res/icons/delete_trash.svg" buildAction="None" />
+      <files include="tizen/res/icons/drive_file_move.svg" buildAction="None" />
+      <files include="tizen/res/icons/edit.svg" buildAction="None" />
+      <files include="tizen/res/icons/error.svg" buildAction="None" />
+      <files include="tizen/res/icons/home.svg" buildAction="None" />
+      <files include="tizen/res/icons/indicator_home.svg" buildAction="None" />
+      <files include="tizen/res/icons/indicator_plus.svg" buildAction="None" />
+      <files include="tizen/res/icons/info.svg" buildAction="None" />
+      <files include="tizen/res/icons/info_filled.svg" buildAction="None" />
+      <files include="tizen/res/icons/lock.svg" buildAction="None" />
+      <files include="tizen/res/icons/menu.svg" buildAction="None" />
+      <files include="tizen/res/icons/mic.svg" buildAction="None" />
+      <files include="tizen/res/icons/more_horizontal.svg" buildAction="None" />
+      <files include="tizen/res/icons/more_vertical.svg" buildAction="None" />
+      <files include="tizen/res/icons/photo.svg" buildAction="None" />
+      <files include="tizen/res/icons/photo_filled.svg" buildAction="None" />
+      <files include="tizen/res/icons/play_circle.svg" buildAction="None" />
+      <files include="tizen/res/icons/refresh.svg" buildAction="None" />
+      <files include="tizen/res/icons/remove.svg" buildAction="None" />
+      <files include="tizen/res/icons/search.svg" buildAction="None" />
+      <files include="tizen/res/icons/settings.svg" buildAction="None" />
+      <files include="tizen/res/icons/slideshow.svg" buildAction="None" />
+      <files include="tizen/res/icons/square_dot.svg" buildAction="None" />
+      <files include="tizen/res/icons/swap_vertical.svg" buildAction="None" />
+      <files include="tizen/res/icons/tag.svg" buildAction="None" />
+      <files include="tizen/res/icons/timer.svg" buildAction="None" />
+      <files include="tizen/res/icons/vertical_align_top.svg" buildAction="None" />
+      <files include="tizen/res/icons/visibility_off.svg" buildAction="None" />
+      <files include="tizen/res/icons/volume_mute.svg" buildAction="None" />
+      <files include="tizen/res/icons/volume_up.svg" buildAction="None" />
+      <files include="tizen/res/icons/wifi.svg" buildAction="None" />
+      <files include="tizen/res/icons/wifi_1_bar.svg" buildAction="None" />
+      <files include="tizen/res/icons/wifi_2_bar.svg" buildAction="None" />
+      <files include="tizen/res/icons/wifi_off.svg" buildAction="None" />
+      <files include="tizen/res/check_box.json" buildAction="None" />
+      <files include="tizen/res/check_box_ghost.json" buildAction="None" />
+      <files include="tizen/res/material_color_dark.json" buildAction="None" />
+      <files include="tizen/res/material_color_light.json" buildAction="None" />
+      <files include="tizen/res/progress_mono.json" buildAction="None" />
+      <files include="tizen/res/progress_primary.json" buildAction="None" />
+      <files include="tizen/res/radio_button.json" buildAction="None" />
+      <files include="tizen/res/radio_button_ghost.json" buildAction="None" />
+    </contentFiles>
+  </metadata>
+</package>

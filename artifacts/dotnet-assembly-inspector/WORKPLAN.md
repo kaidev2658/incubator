@@ -1,0 +1,61 @@
+# WORKPLAN — dotnet-assembly-inspector
+
+Last updated: 2026-03-04 23:05 KST
+Owner: Coordinator
+
+## Goal
+NuGet package/DLL assembly metadata inspection tool based on **Mono.Cecil** (no runtime loading), producing machine-readable and human-readable API indexes.
+
+## Scope (MVP)
+- Input: dll folder (later .nupkg support)
+- Output:
+  - `api-index.json` (full structure)
+  - `api-summary.md` (readable summary)
+- Extract:
+  - namespaces/types
+  - constructors/properties/methods/events signatures
+  - inheritance/interface hierarchy
+  - extension methods + declaring namespace
+
+## Phase Plan
+
+### Phase 1 — CLI MVP (in progress)
+- [x] Create .NET solution scaffold (`src`, `tests`)
+- [x] Add Mono.Cecil + resolver pipeline
+- [x] Build metadata domain model (`ApiIndex`)
+- [x] Implement signature formatter (C#-friendly)
+- [x] Export JSON/Markdown
+- [x] Add sample input/output + smoke test
+
+### Phase 2 — NuGet package ingestion
+- [x] Read `.nupkg` directly
+- [x] TFM selection (`--tfm`, `--all-tfms`)
+- [ ] Dependency path handling
+
+### Phase 3 — AI-friendly output optimization
+- [ ] Compact index format
+- [ ] Namespace/type chunking outputs
+- [ ] Prompt templates for coding agents
+
+### Phase 4 — OpenClaw Skill
+- [ ] Skill wrapper + `SKILL.md`
+- [ ] Input/Output contract
+- [ ] Example workflows
+
+### Phase 5 — MCP tooling
+- [ ] `inspect_assembly`
+- [ ] `inspect_nuget_package`
+- [ ] `find_extension_methods`
+
+## Risks / Notes
+- Obfuscated assemblies reduce semantic readability.
+- Missing dependencies may reduce type resolution quality.
+- Multi-target packages may expose different signatures per TFM.
+
+## Decision Log
+- 2026-03-04: Project directory standardized to `artifacts/dotnet-assembly-inspector`.
+- 2026-03-04: Analyzer backend selected: **Mono.Cecil** (not System.Reflection).
+- 2026-03-04: Phase 1 kickoff scaffolded with manual `.sln`/`.csproj` creation because `dotnet` CLI was not on PATH in initial agent run.
+- 2026-03-04: Build/test execution standardized with explicit path `/usr/local/share/dotnet/dotnet` and `DOTNET_ROLL_FORWARD=Major` in this host.
+- 2026-03-04: CLI input modes extended to support `.dll`, `.nupkg`, and directory batch input.
+- 2026-03-04: Added TFM controls for nupkg processing (`--tfm <value>`, `--all-tfms`; default: first discovered TFM).

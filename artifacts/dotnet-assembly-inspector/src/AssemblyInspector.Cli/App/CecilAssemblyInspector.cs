@@ -1,0 +1,92 @@
+using AssemblyInspector.Cli.Domain;
+using AssemblyInspector.Cli.Formatting;
+using Mono.Cecil;
+
+namespace AssemblyInspector.Cli.App;
+
+public sealed class CecilAssemblyInspector : IAssemblyInspector
+{
+    private readonly SignatureFormatter _signatureFormatter = new();
+
+    public ApiIndex Inspect(string assemblyPath)
+    {
+        var resolver = new DefaultAssemblyResolver();
+        var directory = Path.GetDirectoryName(Path.GetFullPath(assemblyPath));
+
+        if (!string.IsNullOrWhiteSpace(directory))
+        {
+            resolver.AddSearchDirectory(directory);
+        }
+
+        var readerParameters = new ReaderParameters
+        {
+            AssemblyResolver = resolver,
+            ReadSymbols = false,
+            InMemory = true
+        };
+
+        using var assembly = AssemblyDefinition.ReadAssembly(assemblyPath, readerParameters);
+
+        var types = assembly.Modules
+            .SelectMany(module => module.Types)
+            .Where(type => type.Name != "<Module>")
+            .OrderBy(type => type.Namespace)
+            .ThenBy(type => type.Name)
+            .ToList();
+
+        var namespaces = types
+            .GroupBy(type => string.IsNullOrWhiteSpace(type.Namespace) ? "(global)" : type.Namespace)
+            .OrderBy(group => group.Key)
+            .Select(group => new NamespaceIndex(
+                group.Key,
+                group.Select(MapType).ToList()))
+            .ToList();
+
+        return new ApiIndex(
+            assembly.Name.Name,
+            assemblyPath,
+            DateTimeOffset.UtcNow,
+            namespaces);
+    }
+
+    private TypeIndex MapType(TypeDefinition type)
+    {
+        var members = new List<MemberSignature>();
+
+        members.AddRange(type.Methods
+            .Where(method => method.IsConstructor)
+            .Select(constructor => new MemberSignature("constructor", constructor.Name, _signatureFormatter.FormatMethod(constructor))));
+
+        members.AddRange(type.Properties
+            .Select(property => new MemberSignature("property", property.Name, _signatureFormatter.FormatProperty(property))));
+
+        members.AddRange(type.Methods
+            .Where(method => !method.IsConstructor)
+            .Select(method => new MemberSignature("method", method.Name, _signatureFormatter.FormatMethod(method))));
+
+        members.AddRange(type.Events
+            .Select(@event => new MemberSignature("event", @event.Name, _signatureFormatter.FormatEvent(@event))));
+
+        members = members
+            .OrderBy(member => member.Kind)
+            .ThenBy(member => member.Name)
+            .ToList();
+
+        return new TypeIndex(
+            type.Name,
+            type.FullName,
+            ResolveKind(type),
+            type.BaseType?.FullName,
+            type.Interfaces.Select(i => i.InterfaceType.FullName).OrderBy(name => name).ToList(),
+            members);
+    }
+
+    private static string ResolveKind(TypeDefinition type)
+    {
+        if (type.IsInterface) return "interface";
+        if (type.IsEnum) return "enum";
+        if (type.IsValueType) return "struct";
+        if (type.IsClass) return "class";
+        return "type";
+    }
+}

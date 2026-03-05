@@ -1,0 +1,124 @@
+{
+  "AssemblyName": "Tizen.UI.Tools",
+  "SourcePath": "/var/folders/hz/_qhnnrpx00nbls9m60h83lym0000gp/T/dotnet-assembly-inspector/975b8a16ebfb4ad09ca5fa69c98da7ca/lib/net8.0-tizen10.0/Tizen.UI.Tools.dll",
+  "GeneratedAtUtc": "2026-03-04T14:04:47.46636+00:00",
+  "Namespaces": [
+    {
+      "Name": "Tizen.UI.Tools",
+      "Types": [
+        {
+          "Name": "DumpViewTree",
+          "FullName": "Tizen.UI.Tools.DumpViewTree",
+          "Kind": "class",
+          "BaseType": "System.Object",
+          "Interfaces": [],
+          "Members": [
+            {
+              "Kind": "constructor",
+              "Name": ".cctor",
+              "Signature": "private static .cctor()"
+            },
+            {
+              "Kind": "constructor",
+              "Name": ".ctor",
+              "Signature": "public .ctor()"
+            },
+            {
+              "Kind": "method",
+              "Name": "Dump",
+              "Signature": "public static String Dump()"
+            },
+            {
+              "Kind": "method",
+              "Name": "Dump",
+              "Signature": "public static Void Dump(Window window)"
+            },
+            {
+              "Kind": "method",
+              "Name": "Dump",
+              "Signature": "public static Void Dump(Layer view, Window parent)"
+            },
+            {
+              "Kind": "method",
+              "Name": "Dump",
+              "Signature": "public static Void Dump(View view, NObject parent)"
+            },
+            {
+              "Kind": "method",
+              "Name": "DumpInstance",
+              "Signature": "public static String DumpInstance()"
+            },
+            {
+              "Kind": "method",
+              "Name": "GetBody",
+              "Signature": "private static View GetBody(ContentView view)"
+            },
+            {
+              "Kind": "method",
+              "Name": "GetInstanceTable",
+              "Signature": "private static ConcurrentDictionary\u003CUInt32, WeakReference\u003CView\u003E\u003E GetInstanceTable()"
+            },
+            {
+              "Kind": "method",
+              "Name": "ToHex",
+              "Signature": "public static String ToHex(Color color)"
+            }
+          ]
+        },
+        {
+          "Name": "Inspector",
+          "FullName": "Tizen.UI.Tools.Inspector",
+          "Kind": "class",
+          "BaseType": "System.Object",
+          "Interfaces": [],
+          "Members": [
+            {
+              "Kind": "method",
+              "Name": "Start",
+              "Signature": "public static Void Start(Int32 port)"
+            },
+            {
+              "Kind": "method",
+              "Name": "Stop",
+              "Signature": "public static Void Stop()"
+            }
+          ]
+        },
+        {
+          "Name": "WebServer",
+          "FullName": "Tizen.UI.Tools.WebServer",
+          "Kind": "class",
+          "BaseType": "System.Object",
+          "Interfaces": [],
+          "Members": [
+            {
+              "Kind": "constructor",
+              "Name": ".ctor",
+              "Signature": "public .ctor(Int32 port)"
+            },
+            {
+              "Kind": "method",
+              "Name": "GetMimeType",
+              "Signature": "private String GetMimeType(String filename)"
+            },
+            {
+              "Kind": "method",
+              "Name": "Process",
+              "Signature": "private Void Process(HttpListenerContext context)"
+            },
+            {
+              "Kind": "method",
+              "Name": "Start",
+              "Signature": "public Void Start()"
+            },
+            {
+              "Kind": "method",
+              "Name": "Stop",
+              "Signature": "public Void Stop()"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

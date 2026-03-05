@@ -1,0 +1,756 @@
+{
+  "AssemblyName": "AssemblyInspector.Cli",
+  "SourcePath": "input/AssemblyInspector.Cli.dll",
+  "GeneratedAtUtc": "2026-03-04T11:07:58.71938+00:00",
+  "Namespaces": [
+    {
+      "Name": "(global)",
+      "Types": [
+        {
+          "Name": "Program",
+          "FullName": "Program",
+          "Kind": "class",
+          "BaseType": "System.Object",
+          "Interfaces": [],
+          "Members": [
+            {
+              "Kind": "constructor",
+              "Name": ".ctor",
+              "Signature": "public .ctor()"
+            },
+            {
+              "Kind": "method",
+              "Name": "\u003CMain\u003E",
+              "Signature": "private static Int32 \u003CMain\u003E(String[] args)"
+            },
+            {
+              "Kind": "method",
+              "Name": "\u003CMain\u003E$",
+              "Signature": "private static Task\u003CInt32\u003E \u003CMain\u003E$(String[] args)"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "Name": "AssemblyInspector.Cli.App",
+      "Types": [
+        {
+          "Name": "CecilAssemblyInspector",
+          "FullName": "AssemblyInspector.Cli.App.CecilAssemblyInspector",
+          "Kind": "class",
+          "BaseType": "System.Object",
+          "Interfaces": [
+            "AssemblyInspector.Cli.App.IAssemblyInspector"
+          ],
+          "Members": [
+            {
+              "Kind": "constructor",
+              "Name": ".ctor",
+              "Signature": "public .ctor()"
+            },
+            {
+              "Kind": "method",
+              "Name": "\u003CInspect\u003Eb__1_6",
+              "Signature": "private NamespaceIndex \u003CInspect\u003Eb__1_6(IGrouping\u003CString, TypeDefinition\u003E group)"
+            },
+            {
+              "Kind": "method",
+              "Name": "\u003CMapType\u003Eb__2_1",
+              "Signature": "private MemberSignature \u003CMapType\u003Eb__2_1(MethodDefinition constructor)"
+            },
+            {
+              "Kind": "method",
+              "Name": "\u003CMapType\u003Eb__2_2",
+              "Signature": "private MemberSignature \u003CMapType\u003Eb__2_2(PropertyDefinition property)"
+            },
+            {
+              "Kind": "method",
+              "Name": "\u003CMapType\u003Eb__2_4",
+              "Signature": "private MemberSignature \u003CMapType\u003Eb__2_4(MethodDefinition method)"
+            },
+            {
+              "Kind": "method",
+              "Name": "\u003CMapType\u003Eb__2_5",
+              "Signature": "private MemberSignature \u003CMapType\u003Eb__2_5(EventDefinition event)"
+            },
+            {
+              "Kind": "method",
+              "Name": "Inspect",
+              "Signature": "public ApiIndex Inspect(String assemblyPath)"
+            },
+            {
+              "Kind": "method",
+              "Name": "MapType",
+              "Signature": "private TypeIndex MapType(TypeDefinition type)"
+            },
+            {
+              "Kind": "method",
+              "Name": "ResolveKind",
+              "Signature": "private static String ResolveKind(TypeDefinition type)"
+            }
+          ]
+        },
+        {
+          "Name": "IAssemblyInspector",
+          "FullName": "AssemblyInspector.Cli.App.IAssemblyInspector",
+          "Kind": "interface",
+          "BaseType": null,
+          "Interfaces": [],
+          "Members": [
+            {
+              "Kind": "method",
+              "Name": "Inspect",
+              "Signature": "public ApiIndex Inspect(String assemblyPath)"
+            }
+          ]
+        },
+        {
+          "Name": "InspectorApp",
+          "FullName": "AssemblyInspector.Cli.App.InspectorApp",
+          "Kind": "class",
+          "BaseType": "System.Object",
+          "Interfaces": [],
+          "Members": [
+            {
+              "Kind": "constructor",
+              "Name": ".ctor",
+              "Signature": "public .ctor(IAssemblyInspector inspector, JsonReportWriter jsonWriter, MarkdownReportWriter markdownWriter)"
+            },
+            {
+              "Kind": "method",
+              "Name": "RunAsync",
+              "Signature": "public Task RunAsync(String assemblyPath, String outputDirectory)"
+            }
+          ]
+        },
+        {
+          "Name": "JsonReportWriter",
+          "FullName": "AssemblyInspector.Cli.App.JsonReportWriter",
+          "Kind": "class",
+          "BaseType": "System.Object",
+          "Interfaces": [],
+          "Members": [
+            {
+              "Kind": "constructor",
+              "Name": ".cctor",
+              "Signature": "private static .cctor()"
+            },
+            {
+              "Kind": "constructor",
+              "Name": ".ctor",
+              "Signature": "public .ctor()"
+            },
+            {
+              "Kind": "method",
+              "Name": "WriteAsync",
+              "Signature": "public Task WriteAsync(ApiIndex index, String outputPath)"
+            }
+          ]
+        },
+        {
+          "Name": "MarkdownReportWriter",
+          "FullName": "AssemblyInspector.Cli.App.MarkdownReportWriter",
+          "Kind": "class",
+          "BaseType": "System.Object",
+          "Interfaces": [],
+          "Members": [
+            {
+              "Kind": "constructor",
+              "Name": ".ctor",
+              "Signature": "public .ctor()"
+            },
+            {
+              "Kind": "method",
+              "Name": "WriteAsync",
+              "Signature": "public Task WriteAsync(ApiIndex index, String outputPath)"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "Name": "AssemblyInspector.Cli.Domain",
+      "Types": [
+        {
+          "Name": "ApiIndex",
+          "FullName": "AssemblyInspector.Cli.Domain.ApiIndex",
+          "Kind": "class",
+          "BaseType": "System.Object",
+          "Interfaces": [
+            "System.IEquatable\u00601\u003CAssemblyInspector.Cli.Domain.ApiIndex\u003E"
+          ],
+          "Members": [
+            {
+              "Kind": "constructor",
+              "Name": ".ctor",
+              "Signature": "public .ctor(String AssemblyName, String SourcePath, DateTimeOffset GeneratedAtUtc, IReadOnlyList\u003CNamespaceIndex\u003E Namespaces)"
+            },
+            {
+              "Kind": "constructor",
+              "Name": ".ctor",
+              "Signature": "private .ctor(ApiIndex original)"
+            },
+            {
+              "Kind": "method",
+              "Name": "\u003CClone\u003E$",
+              "Signature": "public ApiIndex \u003CClone\u003E$()"
+            },
+            {
+              "Kind": "method",
+              "Name": "Deconstruct",
+              "Signature": "public Void Deconstruct(String\u0026 AssemblyName, String\u0026 SourcePath, DateTimeOffset\u0026 GeneratedAtUtc, IReadOnlyList Namespaces)"
+            },
+            {
+              "Kind": "method",
+              "Name": "Equals",
+              "Signature": "public Boolean Equals(Object obj)"
+            },
+            {
+              "Kind": "method",
+              "Name": "Equals",
+              "Signature": "public Boolean Equals(ApiIndex other)"
+            },
+            {
+              "Kind": "method",
+              "Name": "get_AssemblyName",
+              "Signature": "public String get_AssemblyName()"
+            },
+            {
+              "Kind": "method",
+              "Name": "get_EqualityContract",
+              "Signature": "private Type get_EqualityContract()"
+            },
+            {
+              "Kind": "method",
+              "Name": "get_GeneratedAtUtc",
+              "Signature": "public DateTimeOffset get_GeneratedAtUtc()"
+            },
+            {
+              "Kind": "method",
+              "Name": "get_Namespaces",
+              "Signature": "public IReadOnlyList\u003CNamespaceIndex\u003E get_Namespaces()"
+            },
+            {
+              "Kind": "method",
+              "Name": "get_SourcePath",
+              "Signature": "public String get_SourcePath()"
+            },
+            {
+              "Kind": "method",
+              "Name": "GetHashCode",
+              "Signature": "public Int32 GetHashCode()"
+            },
+            {
+              "Kind": "method",
+              "Name": "op_Equality",
+              "Signature": "public static Boolean op_Equality(ApiIndex left, ApiIndex right)"
+            },
+            {
+              "Kind": "method",
+              "Name": "op_Inequality",
+              "Signature": "public static Boolean op_Inequality(ApiIndex left, ApiIndex right)"
+            },
+            {
+              "Kind": "method",
+              "Name": "PrintMembers",
+              "Signature": "private Boolean PrintMembers(StringBuilder builder)"
+            },
+            {
+              "Kind": "method",
+              "Name": "set_AssemblyName",
+              "Signature": "public Void modreq(System.Runtime.CompilerServices.IsExternalInit) set_AssemblyName(String value)"
+            },
+            {
+              "Kind": "method",
+              "Name": "set_GeneratedAtUtc",
+              "Signature": "public Void modreq(System.Runtime.CompilerServices.IsExternalInit) set_GeneratedAtUtc(DateTimeOffset value)"
+            },
+            {
+              "Kind": "method",
+              "Name": "set_Namespaces",
+              "Signature": "public Void modreq(System.Runtime.CompilerServices.IsExternalInit) set_Namespaces(IReadOnlyList\u003CNamespaceIndex\u003E value)"
+            },
+            {
+              "Kind": "method",
+              "Name": "set_SourcePath",
+              "Signature": "public Void modreq(System.Runtime.CompilerServices.IsExternalInit) set_SourcePath(String value)"
+            },
+            {
+              "Kind": "method",
+              "Name": "ToString",
+              "Signature": "public String ToString()"
+            },
+            {
+              "Kind": "property",
+              "Name": "AssemblyName",
+              "Signature": "public String AssemblyName { get; set; }"
+            },
+            {
+              "Kind": "property",
+              "Name": "EqualityContract",
+              "Signature": "private Type EqualityContract { get; }"
+            },
+            {
+              "Kind": "property",
+              "Name": "GeneratedAtUtc",
+              "Signature": "public DateTimeOffset GeneratedAtUtc { get; set; }"
+            },
+            {
+              "Kind": "property",
+              "Name": "Namespaces",
+              "Signature": "public IReadOnlyList\u003CNamespaceIndex\u003E Namespaces { get; set; }"
+            },
+            {
+              "Kind": "property",
+              "Name": "SourcePath",
+              "Signature": "public String SourcePath { get; set; }"
+            }
+          ]
+        },
+        {
+          "Name": "MemberSignature",
+          "FullName": "AssemblyInspector.Cli.Domain.MemberSignature",
+          "Kind": "class",
+          "BaseType": "System.Object",
+          "Interfaces": [
+            "System.IEquatable\u00601\u003CAssemblyInspector.Cli.Domain.MemberSignature\u003E"
+          ],
+          "Members": [
+            {
+              "Kind": "constructor",
+              "Name": ".ctor",
+              "Signature": "public .ctor(String Kind, String Name, String Signature)"
+            },
+            {
+              "Kind": "constructor",
+              "Name": ".ctor",
+              "Signature": "private .ctor(MemberSignature original)"
+            },
+            {
+              "Kind": "method",
+              "Name": "\u003CClone\u003E$",
+              "Signature": "public MemberSignature \u003CClone\u003E$()"
+            },
+            {
+              "Kind": "method",
+              "Name": "Deconstruct",
+              "Signature": "public Void Deconstruct(String\u0026 Kind, String\u0026 Name, String\u0026 Signature)"
+            },
+            {
+              "Kind": "method",
+              "Name": "Equals",
+              "Signature": "public Boolean Equals(Object obj)"
+            },
+            {
+              "Kind": "method",
+              "Name": "Equals",
+              "Signature": "public Boolean Equals(MemberSignature other)"
+            },
+            {
+              "Kind": "method",
+              "Name": "get_EqualityContract",
+              "Signature": "private Type get_EqualityContract()"
+            },
+            {
+              "Kind": "method",
+              "Name": "get_Kind",
+              "Signature": "public String get_Kind()"
+            },
+            {
+              "Kind": "method",
+              "Name": "get_Name",
+              "Signature": "public String get_Name()"
+            },
+            {
+              "Kind": "method",
+              "Name": "get_Signature",
+              "Signature": "public String get_Signature()"
+            },
+            {
+              "Kind": "method",
+              "Name": "GetHashCode",
+              "Signature": "public Int32 GetHashCode()"
+            },
+            {
+              "Kind": "method",
+              "Name": "op_Equality",
+              "Signature": "public static Boolean op_Equality(MemberSignature left, MemberSignature right)"
+            },
+            {
+              "Kind": "method",
+              "Name": "op_Inequality",
+              "Signature": "public static Boolean op_Inequality(MemberSignature left, MemberSignature right)"
+            },
+            {
+              "Kind": "method",
+              "Name": "PrintMembers",
+              "Signature": "private Boolean PrintMembers(StringBuilder builder)"
+            },
+            {
+              "Kind": "method",
+              "Name": "set_Kind",
+              "Signature": "public Void modreq(System.Runtime.CompilerServices.IsExternalInit) set_Kind(String value)"
+            },
+            {
+              "Kind": "method",
+              "Name": "set_Name",
+              "Signature": "public Void modreq(System.Runtime.CompilerServices.IsExternalInit) set_Name(String value)"
+            },
+            {
+              "Kind": "method",
+              "Name": "set_Signature",
+              "Signature": "public Void modreq(System.Runtime.CompilerServices.IsExternalInit) set_Signature(String value)"
+            },
+            {
+              "Kind": "method",
+              "Name": "ToString",
+              "Signature": "public String ToString()"
+            },
+            {
+              "Kind": "property",
+              "Name": "EqualityContract",
+              "Signature": "private Type EqualityContract { get; }"
+            },
+            {
+              "Kind": "property",
+              "Name": "Kind",
+              "Signature": "public String Kind { get; set; }"
+            },
+            {
+              "Kind": "property",
+              "Name": "Name",
+              "Signature": "public String Name { get; set; }"
+            },
+            {
+              "Kind": "property",
+              "Name": "Signature",
+              "Signature": "public String Signature { get; set; }"
+            }
+          ]
+        },
+        {
+          "Name": "NamespaceIndex",
+          "FullName": "AssemblyInspector.Cli.Domain.NamespaceIndex",
+          "Kind": "class",
+          "BaseType": "System.Object",
+          "Interfaces": [
+            "System.IEquatable\u00601\u003CAssemblyInspector.Cli.Domain.NamespaceIndex\u003E"
+          ],
+          "Members": [
+            {
+              "Kind": "constructor",
+              "Name": ".ctor",
+              "Signature": "public .ctor(String Name, IReadOnlyList\u003CTypeIndex\u003E Types)"
+            },
+            {
+              "Kind": "constructor",
+              "Name": ".ctor",
+              "Signature": "private .ctor(NamespaceIndex original)"
+            },
+            {
+              "Kind": "method",
+              "Name": "\u003CClone\u003E$",
+              "Signature": "public NamespaceIndex \u003CClone\u003E$()"
+            },
+            {
+              "Kind": "method",
+              "Name": "Deconstruct",
+              "Signature": "public Void Deconstruct(String\u0026 Name, IReadOnlyList Types)"
+            },
+            {
+              "Kind": "method",
+              "Name": "Equals",
+              "Signature": "public Boolean Equals(Object obj)"
+            },
+            {
+              "Kind": "method",
+              "Name": "Equals",
+              "Signature": "public Boolean Equals(NamespaceIndex other)"
+            },
+            {
+              "Kind": "method",
+              "Name": "get_EqualityContract",
+              "Signature": "private Type get_EqualityContract()"
+            },
+            {
+              "Kind": "method",
+              "Name": "get_Name",
+              "Signature": "public String get_Name()"
+            },
+            {
+              "Kind": "method",
+              "Name": "get_Types",
+              "Signature": "public IReadOnlyList\u003CTypeIndex\u003E get_Types()"
+            },
+            {
+              "Kind": "method",
+              "Name": "GetHashCode",
+              "Signature": "public Int32 GetHashCode()"
+            },
+            {
+              "Kind": "method",
+              "Name": "op_Equality",
+              "Signature": "public static Boolean op_Equality(NamespaceIndex left, NamespaceIndex right)"
+            },
+            {
+              "Kind": "method",
+              "Name": "op_Inequality",
+              "Signature": "public static Boolean op_Inequality(NamespaceIndex left, NamespaceIndex right)"
+            },
+            {
+              "Kind": "method",
+              "Name": "PrintMembers",
+              "Signature": "private Boolean PrintMembers(StringBuilder builder)"
+            },
+            {
+              "Kind": "method",
+              "Name": "set_Name",
+              "Signature": "public Void modreq(System.Runtime.CompilerServices.IsExternalInit) set_Name(String value)"
+            },
+            {
+              "Kind": "method",
+              "Name": "set_Types",
+              "Signature": "public Void modreq(System.Runtime.CompilerServices.IsExternalInit) set_Types(IReadOnlyList\u003CTypeIndex\u003E value)"
+            },
+            {
+              "Kind": "method",
+              "Name": "ToString",
+              "Signature": "public String ToString()"
+            },
+            {
+              "Kind": "property",
+              "Name": "EqualityContract",
+              "Signature": "private Type EqualityContract { get; }"
+            },
+            {
+              "Kind": "property",
+              "Name": "Name",
+              "Signature": "public String Name { get; set; }"
+            },
+            {
+              "Kind": "property",
+              "Name": "Types",
+              "Signature": "public IReadOnlyList\u003CTypeIndex\u003E Types { get; set; }"
+            }
+          ]
+        },
+        {
+          "Name": "TypeIndex",
+          "FullName": "AssemblyInspector.Cli.Domain.TypeIndex",
+          "Kind": "class",
+          "BaseType": "System.Object",
+          "Interfaces": [
+            "System.IEquatable\u00601\u003CAssemblyInspector.Cli.Domain.TypeIndex\u003E"
+          ],
+          "Members": [
+            {
+              "Kind": "constructor",
+              "Name": ".ctor",
+              "Signature": "public .ctor(String Name, String FullName, String Kind, String BaseType, IReadOnlyList\u003CString\u003E Interfaces, IReadOnlyList\u003CMemberSignature\u003E Members)"
+            },
+            {
+              "Kind": "constructor",
+              "Name": ".ctor",
+              "Signature": "private .ctor(TypeIndex original)"
+            },
+            {
+              "Kind": "method",
+              "Name": "\u003CClone\u003E$",
+              "Signature": "public TypeIndex \u003CClone\u003E$()"
+            },
+            {
+              "Kind": "method",
+              "Name": "Deconstruct",
+              "Signature": "public Void Deconstruct(String\u0026 Name, String\u0026 FullName, String\u0026 Kind, String\u0026 BaseType, IReadOnlyList Interfaces, IReadOnlyList Members)"
+            },
+            {
+              "Kind": "method",
+              "Name": "Equals",
+              "Signature": "public Boolean Equals(Object obj)"
+            },
+            {
+              "Kind": "method",
+              "Name": "Equals",
+              "Signature": "public Boolean Equals(TypeIndex other)"
+            },
+            {
+              "Kind": "method",
+              "Name": "get_BaseType",
+              "Signature": "public String get_BaseType()"
+            },
+            {
+              "Kind": "method",
+              "Name": "get_EqualityContract",
+              "Signature": "private Type get_EqualityContract()"
+            },
+            {
+              "Kind": "method",
+              "Name": "get_FullName",
+              "Signature": "public String get_FullName()"
+            },
+            {
+              "Kind": "method",
+              "Name": "get_Interfaces",
+              "Signature": "public IReadOnlyList\u003CString\u003E get_Interfaces()"
+            },
+            {
+              "Kind": "method",
+              "Name": "get_Kind",
+              "Signature": "public String get_Kind()"
+            },
+            {
+              "Kind": "method",
+              "Name": "get_Members",
+              "Signature": "public IReadOnlyList\u003CMemberSignature\u003E get_Members()"
+            },
+            {
+              "Kind": "method",
+              "Name": "get_Name",
+              "Signature": "public String get_Name()"
+            },
+            {
+              "Kind": "method",
+              "Name": "GetHashCode",
+              "Signature": "public Int32 GetHashCode()"
+            },
+            {
+              "Kind": "method",
+              "Name": "op_Equality",
+              "Signature": "public static Boolean op_Equality(TypeIndex left, TypeIndex right)"
+            },
+            {
+              "Kind": "method",
+              "Name": "op_Inequality",
+              "Signature": "public static Boolean op_Inequality(TypeIndex left, TypeIndex right)"
+            },
+            {
+              "Kind": "method",
+              "Name": "PrintMembers",
+              "Signature": "private Boolean PrintMembers(StringBuilder builder)"
+            },
+            {
+              "Kind": "method",
+              "Name": "set_BaseType",
+              "Signature": "public Void modreq(System.Runtime.CompilerServices.IsExternalInit) set_BaseType(String value)"
+            },
+            {
+              "Kind": "method",
+              "Name": "set_FullName",
+              "Signature": "public Void modreq(System.Runtime.CompilerServices.IsExternalInit) set_FullName(String value)"
+            },
+            {
+              "Kind": "method",
+              "Name": "set_Interfaces",
+              "Signature": "public Void modreq(System.Runtime.CompilerServices.IsExternalInit) set_Interfaces(IReadOnlyList\u003CString\u003E value)"
+            },
+            {
+              "Kind": "method",
+              "Name": "set_Kind",
+              "Signature": "public Void modreq(System.Runtime.CompilerServices.IsExternalInit) set_Kind(String value)"
+            },
+            {
+              "Kind": "method",
+              "Name": "set_Members",
+              "Signature": "public Void modreq(System.Runtime.CompilerServices.IsExternalInit) set_Members(IReadOnlyList\u003CMemberSignature\u003E value)"
+            },
+            {
+              "Kind": "method",
+              "Name": "set_Name",
+              "Signature": "public Void modreq(System.Runtime.CompilerServices.IsExternalInit) set_Name(String value)"
+            },
+            {
+              "Kind": "method",
+              "Name": "ToString",
+              "Signature": "public String ToString()"
+            },
+            {
+              "Kind": "property",
+              "Name": "BaseType",
+              "Signature": "public String BaseType { get; set; }"
+            },
+            {
+              "Kind": "property",
+              "Name": "EqualityContract",
+              "Signature": "private Type EqualityContract { get; }"
+            },
+            {
+              "Kind": "property",
+              "Name": "FullName",
+              "Signature": "public String FullName { get; set; }"
+            },
+            {
+              "Kind": "property",
+              "Name": "Interfaces",
+              "Signature": "public IReadOnlyList\u003CString\u003E Interfaces { get; set; }"
+            },
+            {
+              "Kind": "property",
+              "Name": "Kind",
+              "Signature": "public String Kind { get; set; }"
+            },
+            {
+              "Kind": "property",
+              "Name": "Members",
+              "Signature": "public IReadOnlyList\u003CMemberSignature\u003E Members { get; set; }"
+            },
+            {
+              "Kind": "property",
+              "Name": "Name",
+              "Signature": "public String Name { get; set; }"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "Name": "AssemblyInspector.Cli.Formatting",
+      "Types": [
+        {
+          "Name": "SignatureFormatter",
+          "FullName": "AssemblyInspector.Cli.Formatting.SignatureFormatter",
+          "Kind": "class",
+          "BaseType": "System.Object",
+          "Interfaces": [],
+          "Members": [
+            {
+              "Kind": "constructor",
+              "Name": ".ctor",
+              "Signature": "public .ctor()"
+            },
+            {
+              "Kind": "method",
+              "Name": "FormatEvent",
+              "Signature": "public String FormatEvent(EventDefinition event)"
+            },
+            {
+              "Kind": "method",
+              "Name": "FormatMethod",
+              "Signature": "public String FormatMethod(MethodDefinition method)"
+            },
+            {
+              "Kind": "method",
+              "Name": "FormatProperty",
+              "Signature": "public String FormatProperty(PropertyDefinition property)"
+            },
+            {
+              "Kind": "method",
+              "Name": "FormatType",
+              "Signature": "private static String FormatType(TypeReference type)"
+            },
+            {
+              "Kind": "method",
+              "Name": "ResolveVisibility",
+              "Signature": "private static String ResolveVisibility(MethodDefinition method)"
+            },
+            {
+              "Kind": "method",
+              "Name": "SimplifyName",
+              "Signature": "private static String SimplifyName(String name)"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

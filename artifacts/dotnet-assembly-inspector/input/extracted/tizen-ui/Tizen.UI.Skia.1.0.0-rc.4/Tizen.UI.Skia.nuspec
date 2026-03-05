@@ -1,0 +1,23 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2013/05/nuspec.xsd">
+  <metadata>
+    <id>Tizen.UI.Skia</id>
+    <version>1.0.0-rc.4</version>
+    <authors>Samsung Electronics</authors>
+    <license type="expression">Apache-2.0</license>
+    <licenseUrl>https://licenses.nuget.org/Apache-2.0</licenseUrl>
+    <projectUrl>https://github.sec.samsung.net/NUI/Tizen.UI</projectUrl>
+    <iconUrl>https://samsungtizenos.com/build/assets/samsung-tizen-os@2x-DWi9C_5A.png</iconUrl>
+    <description>Tizen.UI is a lightweight C# UI framework to make Tizen .NET apps lighter and more performant. Tizen.UI.Skia allows you to use SkiaSharp for 2D graphics in your Tizen.Lite UI applications.</description>
+    <copyright>© Samsung Electronics Co., Ltd All Rights Reserved.</copyright>
+    <tags>Tizen Tizen.NET TizenX TizenExtension Tizen.UI</tags>
+    <repository type="git" url="https://github.sec.samsung.net/NUI/Tizen.UI" commit="2cf9792771d344caabc48d92c36c87bb1f7452dc" />
+    <dependencies>
+      <group targetFramework="net8.0-tizen10.0">
+        <dependency id="Tizen.UI" version="1.0.0-rc.4" exclude="Build,Analyzers" />
+        <dependency id="SkiaSharp" version="2.88.6" exclude="Build,Analyzers" />
+        <dependency id="Tizen.NET" version="13.0.0.19198" exclude="Build,Analyzers" />
+      </group>
+    </dependencies>
+  </metadata>
+</package>
