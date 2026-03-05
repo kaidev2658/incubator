@@ -1,8 +1,21 @@
 # STATUS — dotnet-assembly-inspector
 
-Last updated: 2026-03-05 19:00 KST
+Last updated: 2026-03-05 21:05 KST
 
 ## Current Status
+- 2026-03-05 21:05 KST: Phase 5-4 MCP stdio bridge(Claude Code/Cline) 초안 구현 완료.
+  - Node.js 브리지 추가: `mcp-bridge/server.js`
+    - stdio MCP(JSON-RPC framing) 처리
+    - `tools/list`, `tools/call`, `initialize`, `ping` 지원
+    - 기존 CLI `--mcp-tool` 엔트리(`inspect_assembly`, `inspect_nuget_package`, `find_extension_methods`)로 프록시
+  - 문서 추가: `docs/mcp-bridge.md`
+    - Claude Code MCP 서버 설정 예시
+    - Cline MCP 서버 설정 예시
+    - 입력/출력 흐름 및 실행 명령 정리
+  - 스모크 스크립트 추가: `scripts/smoke_mcp_bridge.js`
+    - `initialize -> tools/list -> tools/call(inspect_assembly)` 최소 E2E 검증
+  - 보조 파일 추가: `mcp-bridge/package.json`
+  - 기존 C# CLI 동작/인자 경로는 변경하지 않음.
 - 2026-03-05 19:00 KST: Phase 5-3 `find_extension_methods` MCP tooling 구현 완료.
   - MCP 엔트리 추가: `--mcp-tool find_extension_methods --request <request.json> [--response <response.json>]`
   - 요청/응답 계약 추가: `FindExtensionMethodsRequest`, `FindExtensionMethodsResponse`
@@ -96,9 +109,9 @@ Last updated: 2026-03-05 19:00 KST
   - 입력 모드(.dll/.nupkg/dir), TFM 옵션 동작, 실행 예시 추가
 
 ## Next Immediate Actions
-1. MCP 응답 최소화 옵션(예: compact/chunk 대응) 확장 여부 결정.
+1. MCP bridge 배포 편의를 위한 npm script/버전 태깅 정책 정리.
 2. MCP tool 에러 응답 표준 스키마(입력 검증/파일 미존재) 도입 여부 검토.
-3. `find_extension_methods` README contract/샘플 보강 여부 검토.
+3. MCP 응답 최소화 옵션(예: compact/chunk 대응) 확장 여부 결정.
 
 ## Blockers
 - 치명적 blocker 없음.

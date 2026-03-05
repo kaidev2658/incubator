@@ -1,0 +1,14 @@
+{
+  "name": "dotnet-assembly-inspector-mcp-bridge",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Stdio MCP bridge for dotnet-assembly-inspector CLI tools",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "smoke": "node ../scripts/smoke_mcp_bridge.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

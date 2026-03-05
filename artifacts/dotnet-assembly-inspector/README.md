@@ -58,7 +58,7 @@ DOTNET_ROLL_FORWARD=Major /usr/local/share/dotnet/dotnet run \
   - 확장 메서드 찾기
   - 타입/네임스페이스 영향도 분석
 
-## MCP Tooling (Phase 5-1, 5-2)
+## MCP Tooling (Phase 5-1, 5-2, 5-3)
 
 `inspect_assembly` and `inspect_nuget_package` are available as MCP-facing tool entries that reuse the existing Mono.Cecil analyzer pipeline.
 
@@ -74,7 +74,32 @@ DOTNET_ROLL_FORWARD=Major /usr/local/share/dotnet/dotnet run \
 
 - If `--response` is omitted, JSON response is printed to stdout.
 - Existing CLI mode is unchanged and still starts with `<input-path(.dll|.nupkg|dir)>`.
-- Supported MCP tool names: `inspect_assembly`, `inspect_nuget_package`
+- Supported MCP tool names: `inspect_assembly`, `inspect_nuget_package`, `find_extension_methods`
+
+## MCP stdio Bridge (Claude Code / Cline)
+
+This repository also ships a Node.js stdio MCP bridge that exposes existing CLI MCP tools to MCP clients:
+
+- `inspect_assembly`
+- `inspect_nuget_package`
+- `find_extension_methods`
+
+Bridge entrypoint:
+
+```bash
+node mcp-bridge/server.js
+```
+
+Input/output flow (high level):
+
+1. MCP client sends `tools/call` over stdio.
+2. Bridge writes a temporary request JSON.
+3. Bridge runs existing CLI `--mcp-tool <name> --request <tmp.json>`.
+4. CLI JSON output is returned as MCP `structuredContent` (+ text copy in `content`).
+
+Setup examples for Claude Code/Cline and smoke procedure:
+
+- [`docs/mcp-bridge.md`](docs/mcp-bridge.md)
 
 ### Request contract (`inspect_assembly`)
 
