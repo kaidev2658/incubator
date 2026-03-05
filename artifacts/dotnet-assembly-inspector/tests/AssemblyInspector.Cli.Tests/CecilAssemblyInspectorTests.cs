@@ -184,6 +184,70 @@ public sealed class CecilAssemblyInspectorTests
     }
 
     [Fact]
+    public async Task RunAsync_WithNamespaceChunkingAndCompactJson_WritesCompactBaseAndChunkPayloads()
+    {
+        using var workspace = new TestWorkspace();
+        var assemblyPath = workspace.CreateStandaloneAssembly();
+        var app = CreateApp(new StaticAssemblyInspector(CreateChunkFixtureIndex(assemblyPath)));
+        var options = new InspectorOptions(
+            assemblyPath,
+            workspace.OutputDirectory,
+            Tfm: null,
+            AllTfms: false,
+            CompactJson: true,
+            Chunking: ChunkingStrategy.Namespace);
+
+        await app.RunAsync(options);
+
+        var baseJsonPath = Path.Combine(workspace.OutputDirectory, "api-index.json");
+        Assert.True(File.Exists(baseJsonPath));
+
+        using var baseDocument = JsonDocument.Parse(await File.ReadAllTextAsync(baseJsonPath));
+        Assert.True(baseDocument.RootElement.TryGetProperty("f", out var format));
+        Assert.Equal("compact-v1", format.GetString());
+        Assert.False(baseDocument.RootElement.TryGetProperty("AssemblyName", out _));
+
+        var firstChunkPath = Path.Combine(workspace.OutputDirectory, "chunks", "namespaces", "0001-alpha-core.json");
+        Assert.True(File.Exists(firstChunkPath));
+
+        using var chunkDocument = JsonDocument.Parse(await File.ReadAllTextAsync(firstChunkPath));
+        Assert.True(chunkDocument.RootElement.TryGetProperty("f", out var chunkFormat));
+        Assert.Equal("compact-v1", chunkFormat.GetString());
+        Assert.False(chunkDocument.RootElement.TryGetProperty("AssemblyName", out _));
+    }
+
+    [Fact]
+    public async Task RunAsync_WithTypeChunkingWithoutCompact_KeepsLegacyBaseAndChunkPayloads()
+    {
+        using var workspace = new TestWorkspace();
+        var assemblyPath = workspace.CreateStandaloneAssembly();
+        var app = CreateApp(new StaticAssemblyInspector(CreateChunkFixtureIndex(assemblyPath)));
+        var options = new InspectorOptions(
+            assemblyPath,
+            workspace.OutputDirectory,
+            Tfm: null,
+            AllTfms: false,
+            CompactJson: false,
+            Chunking: ChunkingStrategy.Type);
+
+        await app.RunAsync(options);
+
+        var baseJsonPath = Path.Combine(workspace.OutputDirectory, "api-index.json");
+        Assert.True(File.Exists(baseJsonPath));
+
+        using var baseDocument = JsonDocument.Parse(await File.ReadAllTextAsync(baseJsonPath));
+        Assert.True(baseDocument.RootElement.TryGetProperty("AssemblyName", out _));
+        Assert.False(baseDocument.RootElement.TryGetProperty("f", out _));
+
+        var firstChunkPath = Path.Combine(workspace.OutputDirectory, "chunks", "types", "0001-alpha-core-widget.json");
+        Assert.True(File.Exists(firstChunkPath));
+
+        using var chunkDocument = JsonDocument.Parse(await File.ReadAllTextAsync(firstChunkPath));
+        Assert.True(chunkDocument.RootElement.TryGetProperty("AssemblyName", out _));
+        Assert.False(chunkDocument.RootElement.TryGetProperty("f", out _));
+    }
+
+    [Fact]
     public void Inspect_FormatsNestedTypeSignaturesWithDeclaringType()
     {
         var inspector = new CecilAssemblyInspector();

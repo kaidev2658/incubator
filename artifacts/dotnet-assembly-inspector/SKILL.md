@@ -1,83 +1,81 @@
 # OpenClaw Skill: dotnet-assembly-inspector
 
-## Purpose
-OpenClaw wrapper skill for inspecting `.NET` assemblies/packages with `dotnet-assembly-inspector` and producing API index artifacts for coding agents.
+## Use This Skill When
+- You need machine-readable API inventory from a `.dll`, `.nupkg`, or package directory.
+- You want coding-agent friendly output in `default`, `compact`, or `chunked` mode.
+- You need deterministic output layout for prompt templates and downstream automation.
 
-## Entrypoint
+## Invocation Template
 
 ```bash
 DOTNET_ROLL_FORWARD=Major /usr/local/share/dotnet/dotnet run \
   --project src/AssemblyInspector.Cli --no-build -c Release -- \
-  <input-path(.dll|.nupkg|dir)> [output-dir] [--tfm <TFM>] [--all-tfms] [--compact-json|--compact] [--chunk <namespace|type>]
+  {{input_path}} {{output_dir=output}} \
+  [--tfm {{tfm}} | --all-tfms] \
+  [--compact-json|--compact] \
+  [--chunk namespace|type]
 ```
 
-## Input Contract
-- `input`: required path, one of:
-  - single `.dll`
-  - single `.nupkg`
-  - directory
-- `output_dir`: optional, default `output`
-- `tfm`: optional, only meaningful for `.nupkg` processing
-- `all_tfms`: optional boolean, overrides `tfm` selection and inspects all discovered TFMs
-- `mode`: output shape selector
-  - `default`: no extra mode flags
-  - `compact`: `--compact-json` (alias: `--compact`)
-  - `chunked`: `--chunk namespace` or `--chunk type` (can be combined with compact)
+## Parameter Mapping (OpenClaw Wrapper)
+- `input_path` (required): one of `.dll`, `.nupkg`, directory
+- `output_dir` (optional): output root directory (default: `output`)
+- `tfm` (optional): target TFM for `.nupkg` inspection
+- `all_tfms` (optional): inspect all discovered TFMs (overrides `tfm`)
+- `compact` (optional): enable compact schema (`--compact-json` or `--compact`)
+- `chunk` (optional): `namespace` or `type`
 
-## Input Resolution Rules
-- `.dll` input: one assembly is analyzed.
-- `.nupkg` input: package is extracted and `lib/**/*.dll` is analyzed.
-  - no `tfm`/`all_tfms`: first discovered TFM only
-  - `--tfm <TFM>`: only matching TFM
-  - `--all-tfms`: every discovered TFM
+## Resolution Rules
+- `.dll` input: inspect one assembly.
+- `.nupkg` input: extract and inspect `lib/**/*.dll`.
 - directory input:
-  - if top-level `*.nupkg` exists: process those packages
-  - otherwise: process all `*.dll` recursively
+  - top-level `*.nupkg` exists -> process nupkg batch
+  - otherwise -> process recursive `*.dll` batch
+- TFM selection for `.nupkg`:
+  - no `--tfm`/`--all-tfms` -> first discovered TFM
+  - `--tfm <TFM>` -> requested TFM only
+  - `--all-tfms` -> all discovered TFMs
 
 ## Output Contract
-- Always emits per analyzed DLL:
+- Always emits for each analyzed DLL:
   - `api-index.json`
   - `api-summary.md`
-- Path patterns by input type:
+- Path layout:
   - `.dll`: `<output>/api-index.json`, `<output>/api-summary.md`
   - `.nupkg`: `<output>/<tfm>/<assembly>/api-index.json`, `<output>/<tfm>/<assembly>/api-summary.md`
-  - directory (`*.dll` batch): `<output>/<assembly>/api-index.json`, `<output>/<assembly>/api-summary.md`
-  - directory (`*.nupkg` batch): `<output>/<package>/<tfm>/<assembly>/api-index.json`, `<output>/<package>/<tfm>/<assembly>/api-summary.md`
-- `mode=compact`:
-  - `api-index.json` schema becomes compact format (`compact-v1`)
-- `mode=chunked`:
-  - base files above are still emitted
-  - additional chunk files:
-    - namespace chunking: `<base>/chunks/namespaces/<NNNN>-<sanitized-namespace>.json`
-    - type chunking: `<base>/chunks/types/<NNNN>-<sanitized-type>.json`
+  - directory (`*.dll`): `<output>/<assembly>/api-index.json`, `<output>/<assembly>/api-summary.md`
+  - directory (`*.nupkg`): `<output>/<package>/<tfm>/<assembly>/api-index.json`, `<output>/<package>/<tfm>/<assembly>/api-summary.md`
+- Mode behavior:
+  - `default`: legacy full schema (backward compatible)
+  - `compact`: compact schema (`compact-v1`) in base/chunk JSON
+  - `chunked`: additional files under `chunks/` while base outputs remain
+    - namespace: `<base>/chunks/namespaces/<NNNN>-<sanitized-namespace>.json`
+    - type: `<base>/chunks/types/<NNNN>-<sanitized-type>.json`
 
-## Usage Examples
+## Invocation Examples
 
-Single DLL, default mode:
-
+Default (single DLL):
 ```bash
 DOTNET_ROLL_FORWARD=Major /usr/local/share/dotnet/dotnet run \
   --project src/AssemblyInspector.Cli --no-build -c Release -- \
   input/AssemblyInspector.Cli.dll output/sample-dll
 ```
 
-Single nupkg, compact mode, selected TFM:
-
+Compact + selected TFM (single nupkg):
 ```bash
 DOTNET_ROLL_FORWARD=Major /usr/local/share/dotnet/dotnet run \
   --project src/AssemblyInspector.Cli --no-build -c Release -- \
   input/nupkg/tizen-ui/Tizen.UI.1.0.0-rc.4.nupkg output/tizen-ui-compact \
-  --tfm net8.0-tizen10.0 --compact-json
+  --tfm net8.0-tizen10.0 --compact
 ```
 
-Directory nupkg batch, all TFMs, type-chunked:
-
+Compact + chunked + all TFMs (nupkg directory):
 ```bash
 DOTNET_ROLL_FORWARD=Major /usr/local/share/dotnet/dotnet run \
   --project src/AssemblyInspector.Cli --no-build -c Release -- \
-  input/nupkg/tizen-ui output/tizen-ui-chunked --all-tfms --chunk type
+  input/nupkg/tizen-ui output/tizen-ui-chunked \
+  --all-tfms --compact --chunk type
 ```
 
 ## Notes
-- Host without .NET 8 runtime may require `DOTNET_ROLL_FORWARD=Major` on execution.
-- If `--chunk` is omitted, no `chunks/` folder is produced.
+- If host only has newer runtime (for example .NET 10), keep `DOTNET_ROLL_FORWARD=Major`.
+- Without `--chunk`, no `chunks/` directory is produced.

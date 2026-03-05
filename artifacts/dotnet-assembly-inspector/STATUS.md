@@ -1,8 +1,13 @@
 # STATUS — dotnet-assembly-inspector
 
-Last updated: 2026-03-05 11:54 KST
+Last updated: 2026-03-05 16:45 KST
 
 ## Current Status
+- 2026-03-05 16:45 KST: Phase 4-1 후속 조치 완료 (SKILL 템플릿 정렬 + compact/chunk 회귀 테스트 보강).
+  - `SKILL.md` 문구/호출 예시를 OpenClaw 사용 템플릿 형태(Invocation Template + Parameter Mapping)로 정리
+  - 테스트 추가: `RunAsync_WithNamespaceChunkingAndCompactJson_WritesCompactBaseAndChunkPayloads`
+  - 테스트 추가: `RunAsync_WithTypeChunkingWithoutCompact_KeepsLegacyBaseAndChunkPayloads`
+  - 검증 실행: `dotnet build`, `dotnet test` 모두 성공 (Passed 18, Failed 0)
 - 2026-03-05 11:54 KST: Phase 4-1 OpenClaw Skill wrapper 착수/초안 작성 진행.
   - 문서 추가: `SKILL.md` (OpenClaw skill entry)
   - 포함 항목: 목적, 엔트리포인트, 입력 계약(dll/nupkg/dir), 출력 계약(default/compact/chunked), 예시 워크플로
@@ -70,8 +75,8 @@ Last updated: 2026-03-05 11:54 KST
   - 입력 모드(.dll/.nupkg/dir), TFM 옵션 동작, 실행 예시 추가
 
 ## Next Immediate Actions
-1. Phase 4-1 리뷰: `SKILL.md` 용어/호출 예시를 OpenClaw 호출 템플릿에 맞게 정리.
-2. 회귀 검증: compact + chunk 조합 시나리오 테스트 케이스 추가 검토.
+1. Phase 5 설계 착수: MCP tooling command surface(`inspect_assembly`, `inspect_nuget_package`, `find_extension_methods`) 초안 확정.
+2. CLI 출력 아티팩트와 MCP 응답 스키마 매핑 표 작성.
 
 ## Blockers
 - 치명적 blocker 없음.
