@@ -36,6 +36,76 @@ public sealed class ReportWritersTests
     }
 
     [Fact]
+    public async Task JsonReportWriter_WithCompactMode_WritesCompactShape()
+    {
+        var writer = new JsonReportWriter();
+        var index = CreateIndex();
+        var outputPath = Path.Combine(Path.GetTempPath(), $"api-index-compact-{Guid.NewGuid():N}.json");
+
+        try
+        {
+            await writer.WriteAsync(index, outputPath, compact: true);
+            var json = await File.ReadAllTextAsync(outputPath);
+
+            using var document = JsonDocument.Parse(json);
+            var root = document.RootElement;
+
+            Assert.Equal("compact-v1", root.GetProperty("f").GetString());
+            Assert.Equal("Sample", root.GetProperty("a").GetString());
+            Assert.True(root.TryGetProperty("n", out var namespaces));
+
+            var firstNamespace = namespaces[0];
+            Assert.Equal("Sample.Namespace", firstNamespace.GetProperty("n").GetString());
+
+            var firstType = firstNamespace.GetProperty("t")[0];
+            Assert.Equal("Sample.Namespace.SampleType", firstType.GetProperty("f").GetString());
+
+            var firstMember = firstType.GetProperty("m")[0];
+            Assert.Equal("method", firstMember.GetProperty("k").GetString());
+            Assert.Equal("public void Do()", firstMember.GetProperty("s").GetString());
+
+            Assert.True(root.TryGetProperty("x", out var extensionMethods));
+            Assert.Equal("System.String", extensionMethods[0].GetProperty("r").GetString());
+            Assert.False(root.TryGetProperty("AssemblyName", out _));
+        }
+        finally
+        {
+            if (File.Exists(outputPath))
+            {
+                File.Delete(outputPath);
+            }
+        }
+    }
+
+    [Fact]
+    public async Task JsonReportWriter_DefaultMode_KeepsLegacyShape()
+    {
+        var writer = new JsonReportWriter();
+        var index = CreateIndex();
+        var outputPath = Path.Combine(Path.GetTempPath(), $"api-index-default-{Guid.NewGuid():N}.json");
+
+        try
+        {
+            await writer.WriteAsync(index, outputPath);
+            var json = await File.ReadAllTextAsync(outputPath);
+
+            using var document = JsonDocument.Parse(json);
+            var root = document.RootElement;
+
+            Assert.True(root.TryGetProperty("AssemblyName", out _));
+            Assert.True(root.TryGetProperty("Namespaces", out _));
+            Assert.False(root.TryGetProperty("f", out _));
+        }
+        finally
+        {
+            if (File.Exists(outputPath))
+            {
+                File.Delete(outputPath);
+            }
+        }
+    }
+
+    [Fact]
     public async Task MarkdownReportWriter_WritesExtensionMethodsSection()
     {
         var writer = new MarkdownReportWriter();

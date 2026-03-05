@@ -46,7 +46,7 @@ public sealed class InspectorApp
             foreach (var nupkg in nupkgs)
             {
                 var packageDir = Path.Combine(outputDirectory, Path.GetFileNameWithoutExtension(nupkg));
-                await ProcessNupkgAsync(nupkg, packageDir, options);
+            await ProcessNupkgAsync(nupkg, packageDir, options);
             }
 
             return;
@@ -61,7 +61,7 @@ public sealed class InspectorApp
         foreach (var dll in dlls)
         {
             var dllDir = Path.Combine(outputDirectory, Path.GetFileNameWithoutExtension(dll));
-            await ProcessDllAsync(dll, dllDir, dependencySearchPaths);
+            await ProcessDllAsync(dll, dllDir, options.CompactJson, dependencySearchPaths);
         }
     }
 
@@ -78,7 +78,7 @@ public sealed class InspectorApp
         {
             var assemblyDirectory = Path.GetDirectoryName(Path.GetFullPath(inputFile));
             var dependencySearchPaths = BuildDependencySearchPaths(EnumerateNearbyDependencyDirectories(assemblyDirectory));
-            await ProcessDllAsync(inputFile, outputDirectory, dependencySearchPaths);
+            await ProcessDllAsync(inputFile, outputDirectory, options.CompactJson, dependencySearchPaths);
             return;
         }
 
@@ -139,7 +139,7 @@ public sealed class InspectorApp
                 {
                     var dllName = Path.GetFileNameWithoutExtension(dll);
                     var outDir = Path.Combine(outputDirectory, tfmGroup.Key, dllName);
-                    await ProcessDllAsync(dll, outDir, dependencySearchPaths);
+                    await ProcessDllAsync(dll, outDir, options.CompactJson, dependencySearchPaths);
                 }
             }
         }
@@ -164,7 +164,7 @@ public sealed class InspectorApp
         return "unknown-tfm";
     }
 
-    private async Task ProcessDllAsync(string dllPath, string outputDirectory, IReadOnlyList<string>? dependencySearchPaths = null)
+    private async Task ProcessDllAsync(string dllPath, string outputDirectory, bool compactJson, IReadOnlyList<string>? dependencySearchPaths = null)
     {
         Directory.CreateDirectory(outputDirectory);
 
@@ -172,7 +172,7 @@ public sealed class InspectorApp
         var jsonPath = Path.Combine(outputDirectory, "api-index.json");
         var markdownPath = Path.Combine(outputDirectory, "api-summary.md");
 
-        await _jsonWriter.WriteAsync(apiIndex, jsonPath);
+        await _jsonWriter.WriteAsync(apiIndex, jsonPath, compactJson);
         await _markdownWriter.WriteAsync(apiIndex, markdownPath);
 
         Console.WriteLine($"Wrote {jsonPath}");

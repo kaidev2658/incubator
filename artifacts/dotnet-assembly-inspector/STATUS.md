@@ -1,8 +1,14 @@
 # STATUS — dotnet-assembly-inspector
 
-Last updated: 2026-03-05 11:03 KST
+Last updated: 2026-03-05 11:11 KST
 
 ## Current Status
+- 2026-03-05 11:11 KST: Phase 3-1 compact index format 최적화 구현 완료.
+  - CLI 옵션 추가: `--compact-json` (alias `--compact`), 기본 출력은 기존 JSON 스키마 유지
+  - `JsonReportWriter` compact 모드(`compact-v1`) 추가: 축약 키(`f/a/s/g/n/x`) 및 namespace/type/member/extension 구조 경량화
+  - 테스트 보강: compact 출력 shape 검증, 기본 모드 호환성 검증, 앱 경로(CompactJson 옵션) 통합 검증
+  - 문서 갱신: README 사용법에 compact JSON 옵션 추가
+  - 검증 실행: `dotnet build`, `dotnet test` 모두 성공 (Passed 14, Failed 0)
 - 2026-03-05 11:03 KST: Phase 2 잔여 항목(의존성 경로 처리) 구현 완료.
   - `IAssemblyInspector`에 선택적 dependency search path 전달 지원 추가, `InspectorApp`에서 DLL/nupkg 시나리오별 주변 경로(`lib/<tfm>`, `ref/<tfm>`, `runtimes/*/lib/<tfm>`, 인접 디렉터리) 수집/전달
   - 테스트 추가: dependency path 전달 동작 검증 2건

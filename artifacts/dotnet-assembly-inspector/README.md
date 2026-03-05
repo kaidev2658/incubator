@@ -18,7 +18,7 @@ Analyze .NET assemblies without runtime loading and produce API inventory output
 ```bash
 DOTNET_ROLL_FORWARD=Major /usr/local/share/dotnet/dotnet run \
   --project src/AssemblyInspector.Cli --no-build -c Release -- \
-  <input-path(.dll|.nupkg|dir)> [output-dir] [--tfm <TFM>] [--all-tfms]
+  <input-path(.dll|.nupkg|dir)> [output-dir] [--tfm <TFM>] [--all-tfms] [--compact-json|--compact]
 ```
 
 ### Input modes
@@ -32,6 +32,10 @@ DOTNET_ROLL_FORWARD=Major /usr/local/share/dotnet/dotnet run \
 - `--tfm <TFM>`: analyze only the selected TFM (e.g. `net8.0-tizen10.0`)
 - `--all-tfms`: analyze all discovered TFMs
 - default (no option): first discovered TFM only
+
+### JSON output mode
+- default: existing verbose `api-index.json` schema (backward compatible)
+- `--compact-json` (alias: `--compact`): writes compact `api-index.json` (`compact-v1`) with shortened keys for lower token usage in AI workflows
 
 ## Examples
 

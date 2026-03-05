@@ -4,4 +4,5 @@ public sealed record InspectorOptions(
     string InputPath,
     string OutputDirectory,
     string? Tfm,
-    bool AllTfms);
+    bool AllTfms,
+    bool CompactJson);

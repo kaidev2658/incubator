@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
+using System.Text.Json;
 using System.Threading.Tasks;
 using AssemblyInspector.Cli.App;
 using AssemblyInspector.Cli.Domain;
@@ -35,7 +36,7 @@ public sealed class CecilAssemblyInspectorTests
         var nupkgPath = workspace.CreatePackageWithTfms("net6.0", "net8.0");
 
         var app = CreateApp();
-        var options = new InspectorOptions(nupkgPath, workspace.OutputDirectory, "net8.0", AllTfms: false);
+        var options = new InspectorOptions(nupkgPath, workspace.OutputDirectory, "net8.0", AllTfms: false, CompactJson: false);
 
         await app.RunAsync(options);
 
@@ -51,7 +52,7 @@ public sealed class CecilAssemblyInspectorTests
         var nupkgPath = workspace.CreatePackageWithTfms("net6.0", "net8.0");
 
         var app = CreateApp();
-        var options = new InspectorOptions(nupkgPath, workspace.OutputDirectory, "net7.0", AllTfms: false);
+        var options = new InspectorOptions(nupkgPath, workspace.OutputDirectory, "net7.0", AllTfms: false, CompactJson: false);
 
         await app.RunAsync(options);
 
@@ -66,7 +67,7 @@ public sealed class CecilAssemblyInspectorTests
         var nupkgPath = workspace.CreatePackageWithTfms("net6.0", "net8.0");
 
         var app = CreateApp();
-        var options = new InspectorOptions(nupkgPath, workspace.OutputDirectory, Tfm: null, AllTfms: true);
+        var options = new InspectorOptions(nupkgPath, workspace.OutputDirectory, Tfm: null, AllTfms: true, CompactJson: false);
 
         await app.RunAsync(options);
 
@@ -84,7 +85,7 @@ public sealed class CecilAssemblyInspectorTests
         var siblingDependencyDirectory = workspace.CreateSiblingDependencyDirectory(Path.GetDirectoryName(assemblyPath)!);
         var inspector = new RecordingAssemblyInspector();
         var app = CreateApp(inspector);
-        var options = new InspectorOptions(assemblyPath, workspace.OutputDirectory, Tfm: null, AllTfms: false);
+        var options = new InspectorOptions(assemblyPath, workspace.OutputDirectory, Tfm: null, AllTfms: false, CompactJson: false);
 
         await app.RunAsync(options);
 
@@ -100,7 +101,7 @@ public sealed class CecilAssemblyInspectorTests
         var nupkgPath = workspace.CreatePackageWithTfms("net8.0");
         var inspector = new RecordingAssemblyInspector();
         var app = CreateApp(inspector);
-        var options = new InspectorOptions(nupkgPath, workspace.OutputDirectory, "net8.0", AllTfms: false);
+        var options = new InspectorOptions(nupkgPath, workspace.OutputDirectory, "net8.0", AllTfms: false, CompactJson: false);
 
         await app.RunAsync(options);
 
@@ -108,6 +109,26 @@ public sealed class CecilAssemblyInspectorTests
         Assert.Contains(invocation.DependencySearchPaths, path => path.EndsWith(Path.Combine("lib", "net8.0"), StringComparison.OrdinalIgnoreCase));
         Assert.Contains(invocation.DependencySearchPaths, path => path.EndsWith(Path.Combine("ref", "net8.0"), StringComparison.OrdinalIgnoreCase));
         Assert.Contains(invocation.DependencySearchPaths, path => path.EndsWith(Path.Combine("runtimes", "any", "lib", "net8.0"), StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
+    public async Task RunAsync_WithCompactJson_WritesCompactApiIndex()
+    {
+        using var workspace = new TestWorkspace();
+        var assemblyPath = workspace.CreateStandaloneAssembly();
+
+        var app = CreateApp();
+        var options = new InspectorOptions(assemblyPath, workspace.OutputDirectory, Tfm: null, AllTfms: false, CompactJson: true);
+
+        await app.RunAsync(options);
+
+        var jsonPath = Path.Combine(workspace.OutputDirectory, "api-index.json");
+        Assert.True(File.Exists(jsonPath));
+
+        using var document = JsonDocument.Parse(await File.ReadAllTextAsync(jsonPath));
+        var root = document.RootElement;
+        Assert.True(root.TryGetProperty("f", out _));
+        Assert.False(root.TryGetProperty("AssemblyName", out _));
     }
 
     [Fact]

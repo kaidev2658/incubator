@@ -23,6 +23,7 @@ static InspectorOptions? ParseOptions(string[] args)
     string outputDirectory = "output";
     string? tfm = null;
     var allTfms = false;
+    var compactJson = false;
 
     for (var i = 0; i < args.Length; i++)
     {
@@ -36,6 +37,12 @@ static InspectorOptions? ParseOptions(string[] args)
         if (arg == "--all-tfms")
         {
             allTfms = true;
+            continue;
+        }
+
+        if (arg is "--compact-json" or "--compact")
+        {
+            compactJson = true;
             continue;
         }
 
@@ -78,10 +85,10 @@ static InspectorOptions? ParseOptions(string[] args)
         tfm = null;
     }
 
-    return new InspectorOptions(inputPath, outputDirectory, tfm, allTfms);
+    return new InspectorOptions(inputPath, outputDirectory, tfm, allTfms, compactJson);
 }
 
 static void PrintUsage()
 {
-    Console.WriteLine("Usage: assembly-inspector <input-path(.dll|.nupkg|dir)> [output-dir] [--tfm <TFM>] [--all-tfms]");
+    Console.WriteLine("Usage: assembly-inspector <input-path(.dll|.nupkg|dir)> [output-dir] [--tfm <TFM>] [--all-tfms] [--compact-json|--compact]");
 }
