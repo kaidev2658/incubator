@@ -1,6 +1,6 @@
 # WORKPLAN — dotnet-assembly-inspector
 
-Last updated: 2026-03-04 23:05 KST
+Last updated: 2026-03-05 11:54 KST
 Owner: Coordinator
 
 ## Goal
@@ -33,14 +33,14 @@ NuGet package/DLL assembly metadata inspection tool based on **Mono.Cecil** (no 
 - [x] Dependency path handling
 
 ### Phase 3 — AI-friendly output optimization
-- [ ] Compact index format
-- [ ] Namespace/type chunking outputs
-- [ ] Prompt templates for coding agents
+- [x] Compact index format
+- [x] Namespace/type chunking outputs
+- [x] Prompt templates for coding agents
 
 ### Phase 4 — OpenClaw Skill
-- [ ] Skill wrapper + `SKILL.md`
-- [ ] Input/Output contract
-- [ ] Example workflows
+- [x] Skill wrapper + `SKILL.md` (Phase 4-1 skeleton)
+- [x] Input/Output contract (`dll` / `.nupkg` / `dir`, `default` / `compact` / `chunked`)
+- [x] Example workflows (CLI invocation samples)
 
 ### Phase 5 — MCP tooling
 - [ ] `inspect_assembly`
@@ -59,3 +59,4 @@ NuGet package/DLL assembly metadata inspection tool based on **Mono.Cecil** (no 
 - 2026-03-04: Build/test execution standardized with explicit path `/usr/local/share/dotnet/dotnet` and `DOTNET_ROLL_FORWARD=Major` in this host.
 - 2026-03-04: CLI input modes extended to support `.dll`, `.nupkg`, and directory batch input.
 - 2026-03-04: Added TFM controls for nupkg processing (`--tfm <value>`, `--all-tfms`; default: first discovered TFM).
+- 2026-03-05 11:54 KST: Phase 4-1 started with OpenClaw skill wrapper draft (`SKILL.md`) including executable entrypoint, I/O contract, and output file layout patterns.
