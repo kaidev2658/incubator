@@ -1,8 +1,14 @@
 # STATUS — dotnet-assembly-inspector
 
-Last updated: 2026-03-05 16:50 KST
+Last updated: 2026-03-05 17:40 KST
 
 ## Current Status
+- 2026-03-05 17:40 KST: Phase 5-2 `inspect_nuget_package` MCP tooling 구현 완료.
+  - MCP 엔트리 추가: `--mcp-tool inspect_nuget_package --request <request.json> [--response <response.json>]`
+  - 요청/응답 계약 추가: `InspectNugetPackageRequest`, `InspectNugetPackageResponse`
+  - nupkg 파이프라인 공용화: `NugetPackageInspector`를 도입해 기존 CLI nupkg 처리 로직과 MCP 도구가 동일 경로 재사용
+  - 문서화: README MCP 섹션에 `inspect_nuget_package` contract/동작(default/`tfm`/`allTfms`) 추가
+  - 테스트 추가: `InspectNugetPackageToolTests.ExecuteAsync_WithSingleTfmPackage_ReturnsAssemblyResults`
 - 2026-03-05 16:50 KST: Phase 5-1 `inspect_assembly` MCP tooling 구현 완료.
   - MCP 엔트리 추가: `--mcp-tool inspect_assembly --request <request.json> [--response <response.json>]`
   - 구현 파일: `src/AssemblyInspector.Cli/Mcp/InspectAssemblyRequest.cs`, `InspectAssemblyResponse.cs`, `InspectAssemblyTool.cs`
@@ -81,9 +87,9 @@ Last updated: 2026-03-05 16:50 KST
   - 입력 모드(.dll/.nupkg/dir), TFM 옵션 동작, 실행 예시 추가
 
 ## Next Immediate Actions
-1. Phase 5-2 착수: `inspect_nuget_package` MCP tool entry/contract 구현.
-2. Phase 5-3 착수: `find_extension_methods` MCP tool entry/contract 구현.
-3. MCP 응답 최소화 옵션(예: compact/chunk 대응) 확장 여부 결정.
+1. Phase 5-3 착수: `find_extension_methods` MCP tool entry/contract 구현.
+2. MCP 응답 최소화 옵션(예: compact/chunk 대응) 확장 여부 결정.
+3. MCP tool 에러 응답 표준 스키마(입력 검증/파일 미존재) 도입 여부 검토.
 
 ## Blockers
 - 치명적 blocker 없음.

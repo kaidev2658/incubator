@@ -84,13 +84,6 @@ static async Task<int> RunMcpToolAsync(string[] args)
         return 1;
     }
 
-    if (!string.Equals(toolName, "inspect_assembly", StringComparison.OrdinalIgnoreCase))
-    {
-        Console.Error.WriteLine($"Unsupported MCP tool: {toolName ?? "(missing)"}");
-        PrintMcpUsage();
-        return 1;
-    }
-
     if (string.IsNullOrWhiteSpace(requestPath))
     {
         Console.Error.WriteLine("Request file is required. Use --request <path>");
@@ -99,21 +92,51 @@ static async Task<int> RunMcpToolAsync(string[] args)
     }
 
     var requestContent = await File.ReadAllTextAsync(requestPath);
-    var request = JsonSerializer.Deserialize<InspectAssemblyRequest>(
-        requestContent,
-        new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-
-    if (request is null)
+    string responseJson;
+    if (string.Equals(toolName, "inspect_assembly", StringComparison.OrdinalIgnoreCase))
     {
-        Console.Error.WriteLine("Invalid request payload.");
+        var request = JsonSerializer.Deserialize<InspectAssemblyRequest>(
+            requestContent,
+            new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+
+        if (request is null)
+        {
+            Console.Error.WriteLine("Invalid request payload.");
+            return 1;
+        }
+
+        var tool = new InspectAssemblyTool(new CecilAssemblyInspector(), new MarkdownReportWriter());
+        var response = await tool.ExecuteAsync(request);
+        responseJson = JsonSerializer.Serialize(
+            response,
+            new JsonSerializerOptions { WriteIndented = true });
+    }
+    else if (string.Equals(toolName, "inspect_nuget_package", StringComparison.OrdinalIgnoreCase))
+    {
+        var request = JsonSerializer.Deserialize<InspectNugetPackageRequest>(
+            requestContent,
+            new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+
+        if (request is null)
+        {
+            Console.Error.WriteLine("Invalid request payload.");
+            return 1;
+        }
+
+        var tool = new InspectNugetPackageTool(
+            new NugetPackageInspector(new CecilAssemblyInspector()),
+            new MarkdownReportWriter());
+        var response = await tool.ExecuteAsync(request);
+        responseJson = JsonSerializer.Serialize(
+            response,
+            new JsonSerializerOptions { WriteIndented = true });
+    }
+    else
+    {
+        Console.Error.WriteLine($"Unsupported MCP tool: {toolName ?? "(missing)"}");
+        PrintMcpUsage();
         return 1;
     }
-
-    var tool = new InspectAssemblyTool(new CecilAssemblyInspector(), new MarkdownReportWriter());
-    var response = await tool.ExecuteAsync(request);
-    var responseJson = JsonSerializer.Serialize(
-        response,
-        new JsonSerializerOptions { WriteIndented = true });
 
     if (string.IsNullOrWhiteSpace(responsePath))
     {
@@ -219,12 +242,15 @@ static InspectorOptions? ParseOptions(string[] args)
 static void PrintUsage()
 {
     Console.WriteLine("Usage: assembly-inspector <input-path(.dll|.nupkg|dir)> [output-dir] [--tfm <TFM>] [--all-tfms] [--compact-json|--compact] [--chunk <namespace|type>]");
-    Console.WriteLine("MCP tool: assembly-inspector --mcp-tool inspect_assembly --request <request.json> [--response <response.json>]");
+    Console.WriteLine("MCP tools:");
+    Console.WriteLine("  assembly-inspector --mcp-tool inspect_assembly --request <request.json> [--response <response.json>]");
+    Console.WriteLine("  assembly-inspector --mcp-tool inspect_nuget_package --request <request.json> [--response <response.json>]");
 }
 
 static void PrintMcpUsage()
 {
-    Console.WriteLine("Usage: assembly-inspector --mcp-tool inspect_assembly --request <request.json> [--response <response.json>]");
+    Console.WriteLine("Usage: assembly-inspector --mcp-tool <tool-name> --request <request.json> [--response <response.json>]");
+    Console.WriteLine("Supported MCP tool names: inspect_assembly, inspect_nuget_package");
 }
 
 static bool TryParseChunking(string value, out ChunkingStrategy chunking)

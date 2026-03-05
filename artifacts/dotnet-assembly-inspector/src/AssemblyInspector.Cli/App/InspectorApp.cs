@@ -1,4 +1,3 @@
-using System.IO.Compression;
 using AssemblyInspector.Cli.Domain;
 
 namespace AssemblyInspector.Cli.App;
@@ -8,12 +7,14 @@ public sealed class InspectorApp
     private readonly IAssemblyInspector _inspector;
     private readonly JsonReportWriter _jsonWriter;
     private readonly MarkdownReportWriter _markdownWriter;
+    private readonly NugetPackageInspector _nugetPackageInspector;
 
     public InspectorApp(IAssemblyInspector inspector, JsonReportWriter jsonWriter, MarkdownReportWriter markdownWriter)
     {
         _inspector = inspector;
         _jsonWriter = jsonWriter;
         _markdownWriter = markdownWriter;
+        _nugetPackageInspector = new NugetPackageInspector(inspector);
     }
 
     public async Task RunAsync(InspectorOptions options)
@@ -46,7 +47,7 @@ public sealed class InspectorApp
             foreach (var nupkg in nupkgs)
             {
                 var packageDir = Path.Combine(outputDirectory, Path.GetFileNameWithoutExtension(nupkg));
-            await ProcessNupkgAsync(nupkg, packageDir, options);
+                await ProcessNupkgAsync(nupkg, packageDir, options);
             }
 
             return;
@@ -87,81 +88,18 @@ public sealed class InspectorApp
 
     private async Task ProcessNupkgAsync(string nupkgPath, string outputDirectory, InspectorOptions options)
     {
-        var tempDir = Path.Combine(Path.GetTempPath(), "dotnet-assembly-inspector", Guid.NewGuid().ToString("N"));
-        Directory.CreateDirectory(tempDir);
+        var inspectedAssemblies = await _nugetPackageInspector.InspectAsync(
+            nupkgPath,
+            options.Tfm,
+            options.AllTfms,
+            Console.WriteLine);
 
-        try
+        foreach (var inspectedAssembly in inspectedAssemblies)
         {
-            ZipFile.ExtractToDirectory(nupkgPath, tempDir);
-
-            var dlls = Directory.Exists(Path.Combine(tempDir, "lib"))
-                ? Directory.GetFiles(Path.Combine(tempDir, "lib"), "*.dll", SearchOption.AllDirectories).OrderBy(path => path).ToList()
-                : new List<string>();
-
-            if (dlls.Count == 0)
-            {
-                Console.WriteLine($"No DLL found in nupkg lib/: {nupkgPath}");
-                return;
-            }
-
-            var groupedByTfm = dlls
-                .GroupBy(ResolveTfmFromPath)
-                .OrderBy(group => group.Key, StringComparer.OrdinalIgnoreCase)
-                .ToList();
-
-            IEnumerable<IGrouping<string, string>> selectedGroups;
-            if (!string.IsNullOrWhiteSpace(options.Tfm))
-            {
-                selectedGroups = groupedByTfm.Where(group => string.Equals(group.Key, options.Tfm, StringComparison.OrdinalIgnoreCase));
-                if (!selectedGroups.Any())
-                {
-                    Console.WriteLine($"No DLL found for requested TFM '{options.Tfm}' in {nupkgPath}");
-                    return;
-                }
-            }
-            else if (options.AllTfms)
-            {
-                selectedGroups = groupedByTfm;
-            }
-            else
-            {
-                selectedGroups = groupedByTfm.Take(1);
-                Console.WriteLine($"No TFM option provided. Using first discovered TFM: {selectedGroups.First().Key}");
-            }
-
-            foreach (var tfmGroup in selectedGroups)
-            {
-                var dependencySearchPaths = BuildDependencySearchPaths(
-                    tfmGroup.Select(Path.GetDirectoryName)
-                        .Concat(GetTfmSpecificDependencyDirectories(tempDir, tfmGroup.Key)));
-
-                foreach (var dll in tfmGroup)
-                {
-                    var dllName = Path.GetFileNameWithoutExtension(dll);
-                    var outDir = Path.Combine(outputDirectory, tfmGroup.Key, dllName);
-                    await ProcessDllAsync(dll, outDir, options.CompactJson, options.Chunking, dependencySearchPaths);
-                }
-            }
+            var dllName = Path.GetFileNameWithoutExtension(inspectedAssembly.AssemblyPath);
+            var outDir = Path.Combine(outputDirectory, inspectedAssembly.Tfm, dllName);
+            await WriteReportsAsync(inspectedAssembly.ApiIndex, outDir, options.CompactJson, options.Chunking);
         }
-        finally
-        {
-            if (Directory.Exists(tempDir))
-            {
-                Directory.Delete(tempDir, true);
-            }
-        }
-    }
-
-    private static string ResolveTfmFromPath(string dllPath)
-    {
-        var segments = dllPath.Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
-        var libIndex = Array.FindIndex(segments, s => string.Equals(s, "lib", StringComparison.OrdinalIgnoreCase));
-        if (libIndex >= 0 && libIndex + 1 < segments.Length)
-        {
-            return segments[libIndex + 1];
-        }
-
-        return "unknown-tfm";
     }
 
     private async Task ProcessDllAsync(
@@ -171,9 +109,18 @@ public sealed class InspectorApp
         ChunkingStrategy chunking,
         IReadOnlyList<string>? dependencySearchPaths = null)
     {
+        ApiIndex apiIndex = _inspector.Inspect(dllPath, dependencySearchPaths);
+        await WriteReportsAsync(apiIndex, outputDirectory, compactJson, chunking);
+    }
+
+    private async Task WriteReportsAsync(
+        ApiIndex apiIndex,
+        string outputDirectory,
+        bool compactJson,
+        ChunkingStrategy chunking)
+    {
         Directory.CreateDirectory(outputDirectory);
 
-        ApiIndex apiIndex = _inspector.Inspect(dllPath, dependencySearchPaths);
         var jsonPath = Path.Combine(outputDirectory, "api-index.json");
         var markdownPath = Path.Combine(outputDirectory, "api-summary.md");
 
@@ -199,23 +146,6 @@ public sealed class InspectorApp
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .OrderBy(path => path, StringComparer.OrdinalIgnoreCase)
             .ToList();
-    }
-
-    private static IEnumerable<string> GetTfmSpecificDependencyDirectories(string packageRoot, string tfm)
-    {
-        yield return Path.Combine(packageRoot, "lib", tfm);
-        yield return Path.Combine(packageRoot, "ref", tfm);
-
-        var runtimesRoot = Path.Combine(packageRoot, "runtimes");
-        if (!Directory.Exists(runtimesRoot))
-        {
-            yield break;
-        }
-
-        foreach (var runtimeDir in Directory.GetDirectories(runtimesRoot))
-        {
-            yield return Path.Combine(runtimeDir, "lib", tfm);
-        }
     }
 
     private static IEnumerable<string> EnumerateNearbyDependencyDirectories(string? assemblyDirectory)

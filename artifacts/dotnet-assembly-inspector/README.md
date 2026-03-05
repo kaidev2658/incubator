@@ -58,9 +58,9 @@ DOTNET_ROLL_FORWARD=Major /usr/local/share/dotnet/dotnet run \
   - 확장 메서드 찾기
   - 타입/네임스페이스 영향도 분석
 
-## MCP Tooling (Phase 5-1)
+## MCP Tooling (Phase 5-1, 5-2)
 
-`inspect_assembly` is available as an MCP-facing tool entry that reuses the existing Mono.Cecil analyzer pipeline.
+`inspect_assembly` and `inspect_nuget_package` are available as MCP-facing tool entries that reuse the existing Mono.Cecil analyzer pipeline.
 
 ### Command entry
 
@@ -74,6 +74,7 @@ DOTNET_ROLL_FORWARD=Major /usr/local/share/dotnet/dotnet run \
 
 - If `--response` is omitted, JSON response is printed to stdout.
 - Existing CLI mode is unchanged and still starts with `<input-path(.dll|.nupkg|dir)>`.
+- Supported MCP tool names: `inspect_assembly`, `inspect_nuget_package`
 
 ### Request contract (`inspect_assembly`)
 
@@ -106,6 +107,46 @@ DOTNET_ROLL_FORWARD=Major /usr/local/share/dotnet/dotnet run \
 
 - `apiIndex`: same full schema as existing `api-index.json` default output.
 - `apiSummaryMarkdown`: same content shape as `api-summary.md`.
+
+### Request contract (`inspect_nuget_package`)
+
+```json
+{
+  "nupkgPath": "input/sample.nupkg",
+  "tfm": "net8.0",
+  "allTfms": false
+}
+```
+
+- `nupkgPath` (required): target `.nupkg` path.
+- `tfm` (optional): inspect only this TFM.
+- `allTfms` (optional): inspect all discovered TFMs. If `true`, `tfm` is ignored.
+- default behavior (without `tfm` and `allTfms`): first discovered TFM only.
+
+### Response contract (`inspect_nuget_package`)
+
+```json
+{
+  "nupkgPath": "/abs/path/sample.nupkg",
+  "assemblies": [
+    {
+      "tfm": "net8.0",
+      "assemblyName": "Sample",
+      "apiIndex": {
+        "assemblyName": "Sample",
+        "sourcePath": "/tmp/.../Sample.dll",
+        "generatedAtUtc": "2026-03-05T08:30:00.0000000+00:00",
+        "namespaces": [],
+        "extensionMethods": []
+      },
+      "apiSummaryMarkdown": "# API Summary: Sample\n..."
+    }
+  ]
+}
+```
+
+- `assemblies`: per-analyzed DLL result grouped by selected TFM set.
+- `apiIndex`/`apiSummaryMarkdown`: same content shapes as existing CLI outputs.
 
 ## Examples
 
