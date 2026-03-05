@@ -7,6 +7,11 @@ public sealed class MarkdownReportWriter
 {
     public Task WriteAsync(ApiIndex index, string outputPath)
     {
+        return File.WriteAllTextAsync(outputPath, Render(index));
+    }
+
+    public string Render(ApiIndex index)
+    {
         var builder = new StringBuilder();
 
         builder.AppendLine($"# API Summary: {index.AssemblyName}");
@@ -71,6 +76,6 @@ public sealed class MarkdownReportWriter
             }
         }
 
-        return File.WriteAllTextAsync(outputPath, builder.ToString());
+        return builder.ToString();
     }
 }

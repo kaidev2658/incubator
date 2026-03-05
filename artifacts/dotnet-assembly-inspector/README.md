@@ -58,6 +58,55 @@ DOTNET_ROLL_FORWARD=Major /usr/local/share/dotnet/dotnet run \
   - 확장 메서드 찾기
   - 타입/네임스페이스 영향도 분석
 
+## MCP Tooling (Phase 5-1)
+
+`inspect_assembly` is available as an MCP-facing tool entry that reuses the existing Mono.Cecil analyzer pipeline.
+
+### Command entry
+
+```bash
+DOTNET_ROLL_FORWARD=Major /usr/local/share/dotnet/dotnet run \
+  --project src/AssemblyInspector.Cli --no-build -c Release -- \
+  --mcp-tool inspect_assembly \
+  --request <request.json> \
+  [--response <response.json>]
+```
+
+- If `--response` is omitted, JSON response is printed to stdout.
+- Existing CLI mode is unchanged and still starts with `<input-path(.dll|.nupkg|dir)>`.
+
+### Request contract (`inspect_assembly`)
+
+```json
+{
+  "assemblyPath": "input/AssemblyInspector.Cli.dll",
+  "dependencySearchPaths": [
+    "input/deps"
+  ]
+}
+```
+
+- `assemblyPath` (required): target `.dll` path.
+- `dependencySearchPaths` (optional): additional resolver directories; non-existing paths are ignored.
+
+### Response contract (`inspect_assembly`)
+
+```json
+{
+  "apiIndex": {
+    "assemblyName": "AssemblyInspector.Cli",
+    "sourcePath": "/abs/path/AssemblyInspector.Cli.dll",
+    "generatedAtUtc": "2026-03-05T08:00:00.0000000+00:00",
+    "namespaces": [],
+    "extensionMethods": []
+  },
+  "apiSummaryMarkdown": "# API Summary: AssemblyInspector.Cli\n..."
+}
+```
+
+- `apiIndex`: same full schema as existing `api-index.json` default output.
+- `apiSummaryMarkdown`: same content shape as `api-summary.md`.
+
 ## Examples
 
 Analyze one DLL:

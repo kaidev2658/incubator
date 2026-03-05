@@ -1,8 +1,14 @@
 # STATUS — dotnet-assembly-inspector
 
-Last updated: 2026-03-05 16:45 KST
+Last updated: 2026-03-05 16:50 KST
 
 ## Current Status
+- 2026-03-05 16:50 KST: Phase 5-1 `inspect_assembly` MCP tooling 구현 완료.
+  - MCP 엔트리 추가: `--mcp-tool inspect_assembly --request <request.json> [--response <response.json>]`
+  - 구현 파일: `src/AssemblyInspector.Cli/Mcp/InspectAssemblyRequest.cs`, `InspectAssemblyResponse.cs`, `InspectAssemblyTool.cs`
+  - 기존 analyzer 파이프라인 재사용: `CecilAssemblyInspector` + `MarkdownReportWriter` 기반 응답 생성
+  - 문서화: README에 request/response contract 및 사용 예시 추가
+  - 테스트 추가: `InspectAssemblyToolTests.ExecuteAsync_WithValidAssembly_ReturnsApiIndexAndMarkdown` (happy path)
 - 2026-03-05 16:45 KST: Phase 4-1 후속 조치 완료 (SKILL 템플릿 정렬 + compact/chunk 회귀 테스트 보강).
   - `SKILL.md` 문구/호출 예시를 OpenClaw 사용 템플릿 형태(Invocation Template + Parameter Mapping)로 정리
   - 테스트 추가: `RunAsync_WithNamespaceChunkingAndCompactJson_WritesCompactBaseAndChunkPayloads`
@@ -75,8 +81,9 @@ Last updated: 2026-03-05 16:45 KST
   - 입력 모드(.dll/.nupkg/dir), TFM 옵션 동작, 실행 예시 추가
 
 ## Next Immediate Actions
-1. Phase 5 설계 착수: MCP tooling command surface(`inspect_assembly`, `inspect_nuget_package`, `find_extension_methods`) 초안 확정.
-2. CLI 출력 아티팩트와 MCP 응답 스키마 매핑 표 작성.
+1. Phase 5-2 착수: `inspect_nuget_package` MCP tool entry/contract 구현.
+2. Phase 5-3 착수: `find_extension_methods` MCP tool entry/contract 구현.
+3. MCP 응답 최소화 옵션(예: compact/chunk 대응) 확장 여부 결정.
 
 ## Blockers
 - 치명적 blocker 없음.
