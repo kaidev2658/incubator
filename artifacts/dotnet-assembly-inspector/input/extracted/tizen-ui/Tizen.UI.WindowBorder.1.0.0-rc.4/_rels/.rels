@@ -1,5 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
-  <Relationship Type="http://schemas.microsoft.com/packaging/2010/07/manifest" Target="/Tizen.UI.WindowBorder.nuspec" Id="RD38AD2F0E1E29718" />
-  <Relationship Type="http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties" Target="/package/services/metadata/core-properties/93c9dfd151f847e191f9d74263d952a4.psmdcp" Id="RD59DC6F5AF0B3491" />
-</Relationships>

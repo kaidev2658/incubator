@@ -5,6 +5,10 @@
 # Generated reports/output
 output/
 
+# Large input artifacts (keep folder structure, not blobs)
+input/nupkg/
+input/extracted/
+
 # Test artifacts
 TestResults/
 *.trx

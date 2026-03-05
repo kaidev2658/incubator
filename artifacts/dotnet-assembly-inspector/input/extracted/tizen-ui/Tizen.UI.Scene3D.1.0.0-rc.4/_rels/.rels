@@ -1,5 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
-  <Relationship Type="http://schemas.microsoft.com/packaging/2010/07/manifest" Target="/Tizen.UI.Scene3D.nuspec" Id="R7FECB50366538990" />
-  <Relationship Type="http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties" Target="/package/services/metadata/core-properties/18cf705113094401b6002ea3863db78b.psmdcp" Id="RF4C04ABCB5A9D5A1" />
-</Relationships>
