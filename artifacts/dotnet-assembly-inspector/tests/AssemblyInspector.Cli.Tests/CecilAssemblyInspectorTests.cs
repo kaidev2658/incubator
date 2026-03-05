@@ -43,6 +43,21 @@ public sealed class CecilAssemblyInspectorTests
     }
 
     [Fact]
+    public async Task RunAsync_WithUnknownRequestedTfm_WritesNothing()
+    {
+        using var workspace = new TestWorkspace();
+        var nupkgPath = workspace.CreatePackageWithTfms("net6.0", "net8.0");
+
+        var app = CreateApp();
+        var options = new InspectorOptions(nupkgPath, workspace.OutputDirectory, "net7.0", AllTfms: false);
+
+        await app.RunAsync(options);
+
+        Assert.True(Directory.Exists(workspace.OutputDirectory));
+        Assert.Empty(Directory.EnumerateFileSystemEntries(workspace.OutputDirectory));
+    }
+
+    [Fact]
     public async Task RunAsync_WithAllTfms_WritesPerTfmLayout()
     {
         using var workspace = new TestWorkspace();

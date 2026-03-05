@@ -3,6 +3,10 @@
 Last updated: 2026-03-04 23:07 KST
 
 ## Current Status
+- 2026-03-05 10:26 KST: `--tfm`/`--all-tfms` 선택 동작 테스트 보강 완료.
+  - 테스트 추가: 요청 TFM만 출력(`RunAsync_WithRequestedTfm_WritesOnlyThatTfmLayout`), 미존재 TFM 요청 시 출력 없음(`RunAsync_WithUnknownRequestedTfm_WritesNothing`), 전체 TFM 출력(`RunAsync_WithAllTfms_WritesPerTfmLayout`) 검증
+  - 출력 구조 검증: `<out>/<tfm>/<assembly>/api-index.json` 및 `api-summary.md`
+  - 검증 실행: `DOTNET_ROLL_FORWARD=Major dotnet test` → Passed 6, Failed 0
 - 2026-03-05 10:24 KST: Extension method 인덱스/리포트 섹션 구현 완료.
   - 모델 추가: `ExtensionMethodIndex`, `ApiIndex.ExtensionMethods`
   - JSON: 기존 스키마 유지 + `ExtensionMethods` 필드 확장
