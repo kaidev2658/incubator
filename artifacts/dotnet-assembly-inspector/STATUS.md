@@ -1,8 +1,13 @@
 # STATUS — dotnet-assembly-inspector
 
-Last updated: 2026-03-05 11:54 KST
+Last updated: 2026-03-05 11:56 KST
 
 ## Current Status
+- 2026-03-05 11:56 KST: Phase 3-3 coding-agent 프롬프트 템플릿 문서화 완료.
+  - 문서 추가: `notes/coding-agent-prompt-templates.md`
+  - 포함 항목: API 탐색/질의, 확장 메서드 탐색, 타입/네임스페이스 영향도 분석 템플릿
+  - 출력 모드/파일 패턴 명시: default(full), compact(`compact-v1`), chunked(`chunks/namespaces|types`)
+  - README 사용법 섹션 업데이트: `--chunk` 옵션, 파일 패턴, 템플릿 문서 링크 반영
 - 2026-03-05 11:54 KST: Phase 3-2 namespace/type chunking 출력 구현 완료.
   - CLI 옵션 추가: `--chunk <namespace|type>` (기본값 `none`, 기존 출력 완전 호환)
   - chunk 출력 경로 규칙:
@@ -56,8 +61,8 @@ Last updated: 2026-03-05 11:54 KST
   - 입력 모드(.dll/.nupkg/dir), TFM 옵션 동작, 실행 예시 추가
 
 ## Next Immediate Actions
-1. Phase 3-3: 코딩 에이전트용 프롬프트 템플릿 초안 작성 및 README/문서 반영.
-2. 회귀 검증: compact + chunk 조합 시나리오 테스트 케이스 추가 검토.
+1. 회귀 검증: compact + chunk 조합 시나리오 테스트 케이스 추가 검토.
+2. Phase 4 착수: OpenClaw Skill wrapper 초안(`SKILL.md`) 설계.
 
 ## Blockers
 - 치명적 blocker 없음.
