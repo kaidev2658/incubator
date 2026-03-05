@@ -1,8 +1,12 @@
 # STATUS — dotnet-assembly-inspector
 
-Last updated: 2026-03-04 23:07 KST
+Last updated: 2026-03-05 11:03 KST
 
 ## Current Status
+- 2026-03-05 11:03 KST: Phase 2 잔여 항목(의존성 경로 처리) 구현 완료.
+  - `IAssemblyInspector`에 선택적 dependency search path 전달 지원 추가, `InspectorApp`에서 DLL/nupkg 시나리오별 주변 경로(`lib/<tfm>`, `ref/<tfm>`, `runtimes/*/lib/<tfm>`, 인접 디렉터리) 수집/전달
+  - 테스트 추가: dependency path 전달 동작 검증 2건
+  - 검증 실행: `dotnet build`, `dotnet test` 모두 성공 (Passed 11, Failed 0)
 - 2026-03-05 10:58 KST: 시그니처 정확도 보강(중첩 타입/제네릭 제약/명시적 인터페이스 구현) 완료.
   - `SignatureFormatter` 개선: nested type, generic constraints, explicit interface implementation 서명 표현 정확도 향상
   - 테스트 픽스처/케이스 추가 후 검증: `dotnet test` → Passed 9, Failed 0

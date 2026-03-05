@@ -9,12 +9,10 @@ public sealed class CecilAssemblyInspector : IAssemblyInspector
     private const string ExtensionAttributeFullName = "System.Runtime.CompilerServices.ExtensionAttribute";
     private readonly SignatureFormatter _signatureFormatter = new();
 
-    public ApiIndex Inspect(string assemblyPath)
+    public ApiIndex Inspect(string assemblyPath, IEnumerable<string>? dependencySearchPaths = null)
     {
         var resolver = new DefaultAssemblyResolver();
-        var directory = Path.GetDirectoryName(Path.GetFullPath(assemblyPath));
-
-        if (!string.IsNullOrWhiteSpace(directory))
+        foreach (var directory in ResolveSearchDirectories(assemblyPath, dependencySearchPaths))
         {
             resolver.AddSearchDirectory(directory);
         }
@@ -57,6 +55,35 @@ public sealed class CecilAssemblyInspector : IAssemblyInspector
             DateTimeOffset.UtcNow,
             namespaces,
             extensionMethods);
+    }
+
+    private static IEnumerable<string> ResolveSearchDirectories(string assemblyPath, IEnumerable<string>? dependencySearchPaths)
+    {
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        var assemblyDirectory = Path.GetDirectoryName(Path.GetFullPath(assemblyPath));
+        if (!string.IsNullOrWhiteSpace(assemblyDirectory))
+        {
+            var fullAssemblyDirectory = Path.GetFullPath(assemblyDirectory);
+            if (Directory.Exists(fullAssemblyDirectory) && seen.Add(fullAssemblyDirectory))
+            {
+                yield return fullAssemblyDirectory;
+            }
+        }
+
+        if (dependencySearchPaths is null)
+        {
+            yield break;
+        }
+
+        foreach (var candidate in dependencySearchPaths.Where(path => !string.IsNullOrWhiteSpace(path)))
+        {
+            var fullPath = Path.GetFullPath(candidate);
+            if (Directory.Exists(fullPath) && seen.Add(fullPath))
+            {
+                yield return fullPath;
+            }
+        }
     }
 
     private TypeIndex MapType(TypeDefinition type)

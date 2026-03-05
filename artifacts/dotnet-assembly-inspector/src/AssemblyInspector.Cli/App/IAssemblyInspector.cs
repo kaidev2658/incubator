@@ -4,5 +4,5 @@ namespace AssemblyInspector.Cli.App;
 
 public interface IAssemblyInspector
 {
-    ApiIndex Inspect(string assemblyPath);
+    ApiIndex Inspect(string assemblyPath, IEnumerable<string>? dependencySearchPaths = null);
 }

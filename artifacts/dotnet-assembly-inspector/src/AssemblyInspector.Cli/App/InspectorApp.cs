@@ -56,10 +56,12 @@ public sealed class InspectorApp
             .OrderBy(path => path)
             .ToList();
 
+        var dependencySearchPaths = BuildDependencySearchPaths(dlls.Select(Path.GetDirectoryName));
+
         foreach (var dll in dlls)
         {
             var dllDir = Path.Combine(outputDirectory, Path.GetFileNameWithoutExtension(dll));
-            await ProcessDllAsync(dll, dllDir);
+            await ProcessDllAsync(dll, dllDir, dependencySearchPaths);
         }
     }
 
@@ -74,7 +76,9 @@ public sealed class InspectorApp
 
         if (extension == ".dll")
         {
-            await ProcessDllAsync(inputFile, outputDirectory);
+            var assemblyDirectory = Path.GetDirectoryName(Path.GetFullPath(inputFile));
+            var dependencySearchPaths = BuildDependencySearchPaths(EnumerateNearbyDependencyDirectories(assemblyDirectory));
+            await ProcessDllAsync(inputFile, outputDirectory, dependencySearchPaths);
             return;
         }
 
@@ -127,11 +131,15 @@ public sealed class InspectorApp
 
             foreach (var tfmGroup in selectedGroups)
             {
+                var dependencySearchPaths = BuildDependencySearchPaths(
+                    tfmGroup.Select(Path.GetDirectoryName)
+                        .Concat(GetTfmSpecificDependencyDirectories(tempDir, tfmGroup.Key)));
+
                 foreach (var dll in tfmGroup)
                 {
                     var dllName = Path.GetFileNameWithoutExtension(dll);
                     var outDir = Path.Combine(outputDirectory, tfmGroup.Key, dllName);
-                    await ProcessDllAsync(dll, outDir);
+                    await ProcessDllAsync(dll, outDir, dependencySearchPaths);
                 }
             }
         }
@@ -156,11 +164,11 @@ public sealed class InspectorApp
         return "unknown-tfm";
     }
 
-    private async Task ProcessDllAsync(string dllPath, string outputDirectory)
+    private async Task ProcessDllAsync(string dllPath, string outputDirectory, IReadOnlyList<string>? dependencySearchPaths = null)
     {
         Directory.CreateDirectory(outputDirectory);
 
-        ApiIndex apiIndex = _inspector.Inspect(dllPath);
+        ApiIndex apiIndex = _inspector.Inspect(dllPath, dependencySearchPaths);
         var jsonPath = Path.Combine(outputDirectory, "api-index.json");
         var markdownPath = Path.Combine(outputDirectory, "api-summary.md");
 
@@ -169,5 +177,48 @@ public sealed class InspectorApp
 
         Console.WriteLine($"Wrote {jsonPath}");
         Console.WriteLine($"Wrote {markdownPath}");
+    }
+
+    private static IReadOnlyList<string> BuildDependencySearchPaths(IEnumerable<string?> directories)
+    {
+        return directories
+            .Where(path => !string.IsNullOrWhiteSpace(path))
+            .Select(path => Path.GetFullPath(path!))
+            .Where(Directory.Exists)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(path => path, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+    }
+
+    private static IEnumerable<string> GetTfmSpecificDependencyDirectories(string packageRoot, string tfm)
+    {
+        yield return Path.Combine(packageRoot, "lib", tfm);
+        yield return Path.Combine(packageRoot, "ref", tfm);
+
+        var runtimesRoot = Path.Combine(packageRoot, "runtimes");
+        if (!Directory.Exists(runtimesRoot))
+        {
+            yield break;
+        }
+
+        foreach (var runtimeDir in Directory.GetDirectories(runtimesRoot))
+        {
+            yield return Path.Combine(runtimeDir, "lib", tfm);
+        }
+    }
+
+    private static IEnumerable<string> EnumerateNearbyDependencyDirectories(string? assemblyDirectory)
+    {
+        if (string.IsNullOrWhiteSpace(assemblyDirectory) || !Directory.Exists(assemblyDirectory))
+        {
+            yield break;
+        }
+
+        yield return assemblyDirectory;
+
+        foreach (var sibling in Directory.GetDirectories(assemblyDirectory))
+        {
+            yield return sibling;
+        }
     }
 }

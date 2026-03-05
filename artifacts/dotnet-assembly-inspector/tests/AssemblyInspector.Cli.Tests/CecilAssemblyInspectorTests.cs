@@ -77,6 +77,40 @@ public sealed class CecilAssemblyInspectorTests
     }
 
     [Fact]
+    public async Task RunAsync_WithDllInput_PassesNearbyDependencyDirectories()
+    {
+        using var workspace = new TestWorkspace();
+        var assemblyPath = workspace.CreateStandaloneAssembly();
+        var siblingDependencyDirectory = workspace.CreateSiblingDependencyDirectory(Path.GetDirectoryName(assemblyPath)!);
+        var inspector = new RecordingAssemblyInspector();
+        var app = CreateApp(inspector);
+        var options = new InspectorOptions(assemblyPath, workspace.OutputDirectory, Tfm: null, AllTfms: false);
+
+        await app.RunAsync(options);
+
+        var invocation = Assert.Single(inspector.Invocations);
+        Assert.Equal(Path.GetFullPath(assemblyPath), Path.GetFullPath(invocation.AssemblyPath));
+        Assert.Contains(Path.GetFullPath(siblingDependencyDirectory), invocation.DependencySearchPaths, StringComparer.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task RunAsync_WithNupkgInput_PassesTfmDependencyDirectories()
+    {
+        using var workspace = new TestWorkspace();
+        var nupkgPath = workspace.CreatePackageWithTfms("net8.0");
+        var inspector = new RecordingAssemblyInspector();
+        var app = CreateApp(inspector);
+        var options = new InspectorOptions(nupkgPath, workspace.OutputDirectory, "net8.0", AllTfms: false);
+
+        await app.RunAsync(options);
+
+        var invocation = Assert.Single(inspector.Invocations);
+        Assert.Contains(invocation.DependencySearchPaths, path => path.EndsWith(Path.Combine("lib", "net8.0"), StringComparison.OrdinalIgnoreCase));
+        Assert.Contains(invocation.DependencySearchPaths, path => path.EndsWith(Path.Combine("ref", "net8.0"), StringComparison.OrdinalIgnoreCase));
+        Assert.Contains(invocation.DependencySearchPaths, path => path.EndsWith(Path.Combine("runtimes", "any", "lib", "net8.0"), StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
     public void Inspect_FormatsNestedTypeSignaturesWithDeclaringType()
     {
         var inspector = new CecilAssemblyInspector();
@@ -132,9 +166,9 @@ public sealed class CecilAssemblyInspectorTests
             .Members;
     }
 
-    private static InspectorApp CreateApp()
+    private static InspectorApp CreateApp(IAssemblyInspector? inspector = null)
     {
-        return new InspectorApp(new CecilAssemblyInspector(), new JsonReportWriter(), new MarkdownReportWriter());
+        return new InspectorApp(inspector ?? new CecilAssemblyInspector(), new JsonReportWriter(), new MarkdownReportWriter());
     }
 
     private sealed class TestWorkspace : IDisposable
@@ -157,6 +191,14 @@ public sealed class CecilAssemblyInspectorTests
                 var targetDir = Path.Combine(packageLayout, "lib", tfm);
                 Directory.CreateDirectory(targetDir);
                 File.Copy(typeof(CecilAssemblyInspector).Assembly.Location, Path.Combine(targetDir, "AssemblyInspector.Cli.dll"), overwrite: true);
+
+                var refDir = Path.Combine(packageLayout, "ref", tfm);
+                Directory.CreateDirectory(refDir);
+                File.Copy(typeof(CecilAssemblyInspector).Assembly.Location, Path.Combine(refDir, "AssemblyInspector.Ref.dll"), overwrite: true);
+
+                var runtimeDir = Path.Combine(packageLayout, "runtimes", "any", "lib", tfm);
+                Directory.CreateDirectory(runtimeDir);
+                File.Copy(typeof(CecilAssemblyInspector).Assembly.Location, Path.Combine(runtimeDir, "AssemblyInspector.Runtime.dll"), overwrite: true);
             }
 
             var nupkgPath = Path.Combine(_rootDirectory, "fixture.nupkg");
@@ -169,6 +211,24 @@ public sealed class CecilAssemblyInspectorTests
             return nupkgPath;
         }
 
+        public string CreateStandaloneAssembly()
+        {
+            var assemblyDir = Path.Combine(_rootDirectory, "standalone");
+            Directory.CreateDirectory(assemblyDir);
+
+            var assemblyPath = Path.Combine(assemblyDir, "AssemblyInspector.Cli.dll");
+            File.Copy(typeof(CecilAssemblyInspector).Assembly.Location, assemblyPath, overwrite: true);
+            return assemblyPath;
+        }
+
+        public string CreateSiblingDependencyDirectory(string assemblyDirectory)
+        {
+            var dependencyDir = Path.Combine(assemblyDirectory, "deps");
+            Directory.CreateDirectory(dependencyDir);
+            File.Copy(typeof(CecilAssemblyInspector).Assembly.Location, Path.Combine(dependencyDir, "Dependency.dll"), overwrite: true);
+            return dependencyDir;
+        }
+
         public void Dispose()
         {
             if (Directory.Exists(_rootDirectory))
@@ -177,4 +237,25 @@ public sealed class CecilAssemblyInspectorTests
             }
         }
     }
+
+    private sealed class RecordingAssemblyInspector : IAssemblyInspector
+    {
+        public List<InspectionInvocation> Invocations { get; } = new();
+
+        public ApiIndex Inspect(string assemblyPath, IEnumerable<string>? dependencySearchPaths = null)
+        {
+            var capturedPaths = dependencySearchPaths?.ToList() ?? new List<string>();
+            Invocations.Add(new InspectionInvocation(assemblyPath, capturedPaths));
+
+            var assemblyName = Path.GetFileNameWithoutExtension(assemblyPath);
+            return new ApiIndex(
+                assemblyName,
+                assemblyPath,
+                DateTimeOffset.UtcNow,
+                Array.Empty<NamespaceIndex>(),
+                Array.Empty<ExtensionMethodIndex>());
+        }
+    }
+
+    private sealed record InspectionInvocation(string AssemblyPath, IReadOnlyList<string> DependencySearchPaths);
 }
