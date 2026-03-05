@@ -1,0 +1,15 @@
+# .NET build artifacts
+**/bin/
+**/obj/
+
+# Generated reports/output
+output/
+
+# Test artifacts
+TestResults/
+*.trx
+
+# OS/editor noise
+.DS_Store
+*.user
+*.suo
