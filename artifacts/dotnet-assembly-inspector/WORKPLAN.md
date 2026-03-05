@@ -30,7 +30,7 @@ NuGet package/DLL assembly metadata inspection tool based on **Mono.Cecil** (no 
 ### Phase 2 — NuGet package ingestion
 - [x] Read `.nupkg` directly
 - [x] TFM selection (`--tfm`, `--all-tfms`)
-- [ ] Dependency path handling
+- [x] Dependency path handling
 
 ### Phase 3 — AI-friendly output optimization
 - [ ] Compact index format
