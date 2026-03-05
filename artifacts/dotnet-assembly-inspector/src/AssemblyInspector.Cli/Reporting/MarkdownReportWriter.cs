@@ -46,6 +46,31 @@ public sealed class MarkdownReportWriter
             }
         }
 
+        builder.AppendLine("## Extension Methods");
+        builder.AppendLine();
+
+        if (index.ExtensionMethods.Count == 0)
+        {
+            builder.AppendLine("- _(none)_");
+            builder.AppendLine();
+        }
+        else
+        {
+            foreach (var extensionMethodGroup in index.ExtensionMethods.GroupBy(method => method.TargetType))
+            {
+                builder.AppendLine($"### Target `{extensionMethodGroup.Key}`");
+                builder.AppendLine();
+
+                foreach (var extensionMethod in extensionMethodGroup)
+                {
+                    builder.AppendLine($"- `{extensionMethod.Signature}`");
+                    builder.AppendLine($"  - Declared in: `{extensionMethod.DeclaringType}` (`{extensionMethod.DeclaringNamespace}`)");
+                }
+
+                builder.AppendLine();
+            }
+        }
+
         return File.WriteAllTextAsync(outputPath, builder.ToString());
     }
 }

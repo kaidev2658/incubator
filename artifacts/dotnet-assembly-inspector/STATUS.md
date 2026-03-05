@@ -3,6 +3,11 @@
 Last updated: 2026-03-04 23:07 KST
 
 ## Current Status
+- 2026-03-05 10:24 KST: Extension method 인덱스/리포트 섹션 구현 완료.
+  - 모델 추가: `ExtensionMethodIndex`, `ApiIndex.ExtensionMethods`
+  - JSON: 기존 스키마 유지 + `ExtensionMethods` 필드 확장
+  - Markdown: `## Extension Methods` 섹션 추가 (대상 타입별 그룹)
+  - 테스트 보강: extension method 인덱싱 및 JSON/Markdown 리포트 출력 검증
 - 2026-03-04 19:39 KST: Phase 1 kickoff implemented.
 - 2026-03-04 20:08 KST: `/usr/local/share/dotnet/dotnet` 기준 restore/build 성공 (오류/경고 0).
 - 2026-03-04 20:08 KST: 샘플 실행 성공 (`DOTNET_ROLL_FORWARD=Major` 사용) 및 결과 파일 생성 확인.

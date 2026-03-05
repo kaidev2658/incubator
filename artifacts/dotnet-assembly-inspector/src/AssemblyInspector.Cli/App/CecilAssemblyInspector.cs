@@ -6,6 +6,7 @@ namespace AssemblyInspector.Cli.App;
 
 public sealed class CecilAssemblyInspector : IAssemblyInspector
 {
+    private const string ExtensionAttributeFullName = "System.Runtime.CompilerServices.ExtensionAttribute";
     private readonly SignatureFormatter _signatureFormatter = new();
 
     public ApiIndex Inspect(string assemblyPath)
@@ -42,11 +43,20 @@ public sealed class CecilAssemblyInspector : IAssemblyInspector
                 group.Select(MapType).ToList()))
             .ToList();
 
+        var extensionMethods = types
+            .SelectMany(MapExtensionMethods)
+            .OrderBy(method => method.TargetType)
+            .ThenBy(method => method.DeclaringNamespace)
+            .ThenBy(method => method.DeclaringType)
+            .ThenBy(method => method.MethodName)
+            .ToList();
+
         return new ApiIndex(
             assembly.Name.Name,
             assemblyPath,
             DateTimeOffset.UtcNow,
-            namespaces);
+            namespaces,
+            extensionMethods);
     }
 
     private TypeIndex MapType(TypeDefinition type)
@@ -79,6 +89,26 @@ public sealed class CecilAssemblyInspector : IAssemblyInspector
             type.BaseType?.FullName,
             type.Interfaces.Select(i => i.InterfaceType.FullName).OrderBy(name => name).ToList(),
             members);
+    }
+
+    private IEnumerable<ExtensionMethodIndex> MapExtensionMethods(TypeDefinition type)
+    {
+        var declaringNamespace = string.IsNullOrWhiteSpace(type.Namespace) ? "(global)" : type.Namespace;
+
+        return type.Methods
+            .Where(IsExtensionMethod)
+            .Where(method => method.Parameters.Count > 0)
+            .Select(method => new ExtensionMethodIndex(
+                declaringNamespace,
+                type.FullName,
+                method.Parameters[0].ParameterType.FullName,
+                method.Name,
+                _signatureFormatter.FormatMethod(method)));
+    }
+
+    private static bool IsExtensionMethod(MethodDefinition method)
+    {
+        return method.IsStatic && method.CustomAttributes.Any(attribute => attribute.AttributeType.FullName == ExtensionAttributeFullName);
     }
 
     private static string ResolveKind(TypeDefinition type)
