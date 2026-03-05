@@ -1,9 +1,11 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using System.Threading.Tasks;
 using AssemblyInspector.Cli.App;
+using AssemblyInspector.Cli.Domain;
 using Xunit;
 
 namespace AssemblyInspector.Cli.Tests;
@@ -72,6 +74,62 @@ public sealed class CecilAssemblyInspectorTests
         Assert.True(File.Exists(Path.Combine(workspace.OutputDirectory, "net6.0", "AssemblyInspector.Cli", "api-summary.md")));
         Assert.True(File.Exists(Path.Combine(workspace.OutputDirectory, "net8.0", "AssemblyInspector.Cli", "api-index.json")));
         Assert.True(File.Exists(Path.Combine(workspace.OutputDirectory, "net8.0", "AssemblyInspector.Cli", "api-summary.md")));
+    }
+
+    [Fact]
+    public void Inspect_FormatsNestedTypeSignaturesWithDeclaringType()
+    {
+        var inspector = new CecilAssemblyInspector();
+        var assemblyPath = typeof(CecilAssemblyInspectorTests).Assembly.Location;
+
+        var index = inspector.Inspect(assemblyPath);
+        var methods = GetTypeMembers(index, "AssemblyInspector.Cli.Tests.SignatureFixtureTypes.NestedTypeConsumer");
+        var method = methods.Single(member => member.Name == nameof(SignatureFixtureTypes.NestedTypeConsumer.Wrap));
+
+        Assert.Equal(
+            "public SignatureContainer<String>.Nested Wrap(SignatureContainer<String>.Nested value)",
+            method.Signature);
+    }
+
+    [Fact]
+    public void Inspect_FormatsGenericMethodConstraints()
+    {
+        var inspector = new CecilAssemblyInspector();
+        var assemblyPath = typeof(CecilAssemblyInspectorTests).Assembly.Location;
+
+        var index = inspector.Inspect(assemblyPath);
+        var methods = GetTypeMembers(index, "AssemblyInspector.Cli.Tests.SignatureFixtureTypes.ConstraintType");
+        var method = methods.Single(member => member.Name == nameof(SignatureFixtureTypes.ConstraintType.Transform));
+
+        Assert.Equal(
+            "public TResult Transform<TResult, TInput>(TInput input) where TResult : class, new() where TInput : IEnumerable<TResult>",
+            method.Signature);
+    }
+
+    [Fact]
+    public void Inspect_FormatsExplicitInterfaceMembersWithoutVisibility()
+    {
+        var inspector = new CecilAssemblyInspector();
+        var assemblyPath = typeof(CecilAssemblyInspectorTests).Assembly.Location;
+
+        var index = inspector.Inspect(assemblyPath);
+        var members = GetTypeMembers(index, "AssemblyInspector.Cli.Tests.SignatureFixtureTypes.ExplicitImplementationType");
+
+        var method = members.Single(member => member.Kind == "method" && member.Name == "AssemblyInspector.Cli.Tests.SignatureFixtureTypes.IExplicitContract.Run");
+        var property = members.Single(member => member.Kind == "property" && member.Name == "AssemblyInspector.Cli.Tests.SignatureFixtureTypes.IExplicitContract.Title");
+        var @event = members.Single(member => member.Kind == "event" && member.Name == "AssemblyInspector.Cli.Tests.SignatureFixtureTypes.IExplicitContract.Changed");
+
+        Assert.Equal("Void AssemblyInspector.Cli.Tests.SignatureFixtureTypes.IExplicitContract.Run()", method.Signature);
+        Assert.Equal("String AssemblyInspector.Cli.Tests.SignatureFixtureTypes.IExplicitContract.Title { get; }", property.Signature);
+        Assert.Equal("event EventHandler AssemblyInspector.Cli.Tests.SignatureFixtureTypes.IExplicitContract.Changed", @event.Signature);
+    }
+
+    private static IReadOnlyList<MemberSignature> GetTypeMembers(ApiIndex index, string fullTypeName)
+    {
+        return index.Namespaces
+            .SelectMany(@namespace => @namespace.Types)
+            .Single(type => type.FullName == fullTypeName)
+            .Members;
     }
 
     private static InspectorApp CreateApp()
