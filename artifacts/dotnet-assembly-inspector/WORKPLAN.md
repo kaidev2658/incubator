@@ -1,6 +1,6 @@
 # WORKPLAN — dotnet-assembly-inspector
 
-Last updated: 2026-03-05 19:00 KST
+Last updated: 2026-03-05 21:05 KST
 Owner: Coordinator
 
 ## Goal
@@ -46,6 +46,7 @@ NuGet package/DLL assembly metadata inspection tool based on **Mono.Cecil** (no 
 - [x] `inspect_assembly`
 - [x] `inspect_nuget_package`
 - [x] `find_extension_methods`
+- [x] MCP stdio bridge for Claude Code/Cline
 
 ## Risks / Notes
 - Obfuscated assemblies reduce semantic readability.
@@ -63,3 +64,4 @@ NuGet package/DLL assembly metadata inspection tool based on **Mono.Cecil** (no 
 - 2026-03-05 16:50 KST: Phase 5-1 완료. MCP-facing tool entry(`--mcp-tool inspect_assembly`)를 추가하고 request/response contract를 README에 문서화. 기존 CLI 인자 경로는 그대로 유지.
 - 2026-03-05 17:40 KST: Phase 5-2 완료. `NugetPackageInspector`를 도입해 기존 `.nupkg` 처리 로직을 공용화하고 MCP `inspect_nuget_package`가 같은 파이프라인을 재사용하도록 정리.
 - 2026-03-05 19:00 KST: Phase 5-3 완료. `find_extension_methods` MCP 도구를 추가하고 기존 `ApiIndex.ExtensionMethods`를 재사용해 target type/namespace/method contains 필터 검색을 지원.
+- 2026-03-05 21:05 KST: Phase 5-4 완료. Node.js 기반 stdio MCP 브리지를 추가해 기존 CLI `--mcp-tool` 3종을 Claude Code/Cline에서 직접 호출할 수 있도록 연결하고(`mcp-bridge/server.js`), 설정/흐름/스모크 절차를 `docs/mcp-bridge.md`와 `scripts/smoke_mcp_bridge.js`로 문서화했다.
