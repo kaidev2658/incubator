@@ -131,6 +131,24 @@ static async Task<int> RunMcpToolAsync(string[] args)
             response,
             new JsonSerializerOptions { WriteIndented = true });
     }
+    else if (string.Equals(toolName, "find_extension_methods", StringComparison.OrdinalIgnoreCase))
+    {
+        var request = JsonSerializer.Deserialize<FindExtensionMethodsRequest>(
+            requestContent,
+            new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+
+        if (request is null)
+        {
+            Console.Error.WriteLine("Invalid request payload.");
+            return 1;
+        }
+
+        var tool = new FindExtensionMethodsTool(new CecilAssemblyInspector());
+        var response = await tool.ExecuteAsync(request);
+        responseJson = JsonSerializer.Serialize(
+            response,
+            new JsonSerializerOptions { WriteIndented = true });
+    }
     else
     {
         Console.Error.WriteLine($"Unsupported MCP tool: {toolName ?? "(missing)"}");
@@ -245,12 +263,13 @@ static void PrintUsage()
     Console.WriteLine("MCP tools:");
     Console.WriteLine("  assembly-inspector --mcp-tool inspect_assembly --request <request.json> [--response <response.json>]");
     Console.WriteLine("  assembly-inspector --mcp-tool inspect_nuget_package --request <request.json> [--response <response.json>]");
+    Console.WriteLine("  assembly-inspector --mcp-tool find_extension_methods --request <request.json> [--response <response.json>]");
 }
 
 static void PrintMcpUsage()
 {
     Console.WriteLine("Usage: assembly-inspector --mcp-tool <tool-name> --request <request.json> [--response <response.json>]");
-    Console.WriteLine("Supported MCP tool names: inspect_assembly, inspect_nuget_package");
+    Console.WriteLine("Supported MCP tool names: inspect_assembly, inspect_nuget_package, find_extension_methods");
 }
 
 static bool TryParseChunking(string value, out ChunkingStrategy chunking)

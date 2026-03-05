@@ -1,8 +1,17 @@
 # STATUS — dotnet-assembly-inspector
 
-Last updated: 2026-03-05 17:40 KST
+Last updated: 2026-03-05 19:00 KST
 
 ## Current Status
+- 2026-03-05 19:00 KST: Phase 5-3 `find_extension_methods` MCP tooling 구현 완료.
+  - MCP 엔트리 추가: `--mcp-tool find_extension_methods --request <request.json> [--response <response.json>]`
+  - 요청/응답 계약 추가: `FindExtensionMethodsRequest`, `FindExtensionMethodsResponse`
+  - 기존 extension index 경로 재사용: `IAssemblyInspector` 결과(`ApiIndex.ExtensionMethods`)를 필터링해 응답 생성
+  - 필터 지원:
+    - `TargetTypeContains` (대상 타입명 contains)
+    - `DeclaringNamespaceContains` (선언 네임스페이스 contains, optional)
+    - `MethodNameContains` (메서드명 contains, optional)
+  - 테스트 추가: `FindExtensionMethodsToolTests` (happy path + 복합 필터 동작)
 - 2026-03-05 17:40 KST: Phase 5-2 `inspect_nuget_package` MCP tooling 구현 완료.
   - MCP 엔트리 추가: `--mcp-tool inspect_nuget_package --request <request.json> [--response <response.json>]`
   - 요청/응답 계약 추가: `InspectNugetPackageRequest`, `InspectNugetPackageResponse`
@@ -87,9 +96,9 @@ Last updated: 2026-03-05 17:40 KST
   - 입력 모드(.dll/.nupkg/dir), TFM 옵션 동작, 실행 예시 추가
 
 ## Next Immediate Actions
-1. Phase 5-3 착수: `find_extension_methods` MCP tool entry/contract 구현.
-2. MCP 응답 최소화 옵션(예: compact/chunk 대응) 확장 여부 결정.
-3. MCP tool 에러 응답 표준 스키마(입력 검증/파일 미존재) 도입 여부 검토.
+1. MCP 응답 최소화 옵션(예: compact/chunk 대응) 확장 여부 결정.
+2. MCP tool 에러 응답 표준 스키마(입력 검증/파일 미존재) 도입 여부 검토.
+3. `find_extension_methods` README contract/샘플 보강 여부 검토.
 
 ## Blockers
 - 치명적 blocker 없음.

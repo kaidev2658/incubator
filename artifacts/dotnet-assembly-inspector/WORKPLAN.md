@@ -1,6 +1,6 @@
 # WORKPLAN — dotnet-assembly-inspector
 
-Last updated: 2026-03-05 17:40 KST
+Last updated: 2026-03-05 19:00 KST
 Owner: Coordinator
 
 ## Goal
@@ -45,7 +45,7 @@ NuGet package/DLL assembly metadata inspection tool based on **Mono.Cecil** (no 
 ### Phase 5 — MCP tooling
 - [x] `inspect_assembly`
 - [x] `inspect_nuget_package`
-- [ ] `find_extension_methods`
+- [x] `find_extension_methods`
 
 ## Risks / Notes
 - Obfuscated assemblies reduce semantic readability.
@@ -62,3 +62,4 @@ NuGet package/DLL assembly metadata inspection tool based on **Mono.Cecil** (no 
 - 2026-03-05 11:54 KST: Phase 4-1 started with OpenClaw skill wrapper draft (`SKILL.md`) including executable entrypoint, I/O contract, and output file layout patterns.
 - 2026-03-05 16:50 KST: Phase 5-1 완료. MCP-facing tool entry(`--mcp-tool inspect_assembly`)를 추가하고 request/response contract를 README에 문서화. 기존 CLI 인자 경로는 그대로 유지.
 - 2026-03-05 17:40 KST: Phase 5-2 완료. `NugetPackageInspector`를 도입해 기존 `.nupkg` 처리 로직을 공용화하고 MCP `inspect_nuget_package`가 같은 파이프라인을 재사용하도록 정리.
+- 2026-03-05 19:00 KST: Phase 5-3 완료. `find_extension_methods` MCP 도구를 추가하고 기존 `ApiIndex.ExtensionMethods`를 재사용해 target type/namespace/method contains 필터 검색을 지원.
