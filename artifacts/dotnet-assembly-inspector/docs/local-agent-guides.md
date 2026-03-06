@@ -15,8 +15,14 @@ cd /Users/clawdev/workspace/github/incubator/artifacts/dotnet-assembly-inspector
 
 ### 실행 명령(공통)
 
+macOS/Linux:
 ```bash
 skills/dotnet-assembly-inspector-local/scripts/inspect.sh <INPUT_PATH> [output_dir] [flags]
+```
+
+Windows PowerShell:
+```powershell
+powershell -ExecutionPolicy Bypass -File .\skills\dotnet-assembly-inspector-local\scripts\inspect.ps1 <INPUT_PATH> [output_dir] [flags]
 ```
 
 대표 플래그:
@@ -154,7 +160,25 @@ skills/dotnet-assembly-inspector-local/scripts/inspect.sh input/nupkg/tizen-ui o
 
 ---
 
-## 6) 트러블슈팅
+## 6) Windows 빠른 체크
+
+- PowerShell에서 스크립트 실행:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\skills\dotnet-assembly-inspector-local\scripts\inspect.ps1 input\nupkg\tizen-ui output\local-agent --all-tfms --compact
+```
+
+- dotnet 경로 확인:
+
+```powershell
+dotnet --info
+```
+
+(스크립트가 `C:\Program Files\dotnet`를 PATH에 자동 추가 시도)
+
+---
+
+## 7) 트러블슈팅
 
 ### dotnet 명령을 못 찾는 경우
 스크립트가 `/usr/local/share/dotnet`를 PATH에 추가하도록 되어 있습니다.

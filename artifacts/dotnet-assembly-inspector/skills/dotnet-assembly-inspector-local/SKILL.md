@@ -11,8 +11,14 @@ Use this skill to inspect assemblies directly via local shell execution.
 
 From the artifact home (`dotnet-assembly-inspector`), run:
 
+macOS/Linux:
 ```bash
 skills/dotnet-assembly-inspector-local/scripts/inspect.sh <input_path> [output_dir] [extra flags]
+```
+
+Windows PowerShell:
+```powershell
+powershell -ExecutionPolicy Bypass -File .\skills\dotnet-assembly-inspector-local\scripts\inspect.ps1 <input_path> [output_dir] [extra flags]
 ```
 
 Examples:
