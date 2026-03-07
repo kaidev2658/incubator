@@ -2,6 +2,10 @@
 **/bin/
 **/obj/
 
+# Keep packaged local skill runtime payload tracked
+!skills/dotnet-assembly-inspector-local/bin/
+!skills/dotnet-assembly-inspector-local/bin/**
+
 # Generated reports/output
 output/
 

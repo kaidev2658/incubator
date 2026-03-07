@@ -28,6 +28,7 @@ powershell -ExecutionPolicy Bypass -File .\skills\dotnet-assembly-inspector-loca
 경로 규칙:
 - `inspect.sh`, `inspect.ps1` 모두 `<INPUT_PATH>`와 `[output_dir]`를 **명령 실행 위치(CWD)** 기준으로 해석합니다.
 - 절대 경로를 넘기면 그대로 사용합니다.
+- 스킬 폴더 내부 `bin/net8.0`의 publish 산출물을 직접 실행하므로, 스킬을 `.cline/skills`로 복사해도 동작합니다(호스트에 .NET 런타임만 설치되어 있으면 됨).
 
 대표 플래그:
 - `--tfm <TFM>`
