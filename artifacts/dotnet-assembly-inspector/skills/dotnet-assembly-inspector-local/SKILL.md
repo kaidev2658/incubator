@@ -11,6 +11,8 @@ Use this skill to inspect assemblies directly via local shell execution.
 
 From the artifact home (`dotnet-assembly-inspector`), run:
 
+> Path rule: both scripts resolve `<input_path>` and `[output_dir]` relative to the directory where you executed the command (current working directory). Absolute paths are supported.
+
 macOS/Linux:
 ```bash
 skills/dotnet-assembly-inspector-local/scripts/inspect.sh <input_path> [output_dir] [extra flags]
