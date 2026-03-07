@@ -25,6 +25,10 @@ Windows PowerShell:
 powershell -ExecutionPolicy Bypass -File .\skills\dotnet-assembly-inspector-local\scripts\inspect.ps1 <INPUT_PATH> [output_dir] [flags]
 ```
 
+경로 규칙:
+- `inspect.sh`, `inspect.ps1` 모두 `<INPUT_PATH>`와 `[output_dir]`를 **명령 실행 위치(CWD)** 기준으로 해석합니다.
+- 절대 경로를 넘기면 그대로 사용합니다.
+
 대표 플래그:
 - `--tfm <TFM>`
 - `--all-tfms`

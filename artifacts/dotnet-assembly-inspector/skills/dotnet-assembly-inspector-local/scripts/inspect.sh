@@ -3,6 +3,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ARTIFACT_HOME="$(cd "$SCRIPT_DIR/../../.." && pwd)"
+CALLER_DIR="$(pwd)"
 
 export PATH="/usr/local/share/dotnet:$PATH"
 export DOTNET_ROLL_FORWARD="${DOTNET_ROLL_FORWARD:-Major}"
@@ -13,8 +14,17 @@ if [[ $# -lt 1 ]]; then
   exit 1
 fi
 
-INPUT_PATH="$1"
-OUTPUT_DIR="${2:-output/local-skill}"
+resolve_from_caller() {
+  local p="$1"
+  if [[ "$p" = /* ]]; then
+    printf '%s\n' "$p"
+  else
+    printf '%s\n' "$CALLER_DIR/$p"
+  fi
+}
+
+INPUT_PATH="$(resolve_from_caller "$1")"
+OUTPUT_DIR="$(resolve_from_caller "${2:-output/local-skill}")"
 
 if [[ $# -ge 2 ]]; then
   shift 2

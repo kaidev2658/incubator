@@ -13,6 +13,20 @@ $ErrorActionPreference = "Stop"
 
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $ArtifactHome = Resolve-Path (Join-Path $ScriptDir "..\..\..")
+$LaunchDir = (Get-Location).Path
+
+function Resolve-FromLaunchDir {
+  param([Parameter(Mandatory = $true)][string]$PathValue)
+
+  if ([System.IO.Path]::IsPathRooted($PathValue)) {
+    return [System.IO.Path]::GetFullPath($PathValue)
+  }
+
+  return [System.IO.Path]::GetFullPath((Join-Path $LaunchDir $PathValue))
+}
+
+$InputPath = Resolve-FromLaunchDir $InputPath
+$OutputDir = Resolve-FromLaunchDir $OutputDir
 
 # Ensure dotnet is resolvable on common Windows installs.
 $dotnetPath = "C:\Program Files\dotnet"
@@ -32,6 +46,7 @@ try {
 
   New-Item -ItemType Directory -Force -Path $OutputDir | Out-Null
 
+  Write-Host "[info] launch dir    : $LaunchDir"
   Write-Host "[info] artifact home : $ArtifactHome"
   Write-Host "[info] input         : $InputPath"
   Write-Host "[info] output        : $OutputDir"
