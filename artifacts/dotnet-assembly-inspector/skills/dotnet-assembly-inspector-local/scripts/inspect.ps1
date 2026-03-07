@@ -12,7 +12,7 @@ param(
 $ErrorActionPreference = "Stop"
 
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
-$ArtifactHome = Resolve-Path (Join-Path $ScriptDir "..\..\..")
+$CliDll = Join-Path $ScriptDir "..\bin\net8.0\AssemblyInspector.Cli.dll"
 $LaunchDir = (Get-Location).Path
 
 function Resolve-FromLaunchDir {
@@ -38,41 +38,35 @@ if (-not $env:DOTNET_ROLL_FORWARD) {
   $env:DOTNET_ROLL_FORWARD = "Major"
 }
 
-Push-Location $ArtifactHome
-try {
-  if (-not (Test-Path $InputPath)) {
-    throw "[error] input path not found: $InputPath"
-  }
-
-  New-Item -ItemType Directory -Force -Path $OutputDir | Out-Null
-
-  Write-Host "[info] launch dir    : $LaunchDir"
-  Write-Host "[info] artifact home : $ArtifactHome"
-  Write-Host "[info] input         : $InputPath"
-  Write-Host "[info] output        : $OutputDir"
-
-  $argsList = @(
-    "run",
-    "--project", "src/AssemblyInspector.Cli",
-    "--no-build",
-    "-c", "Release",
-    "--",
-    $InputPath,
-    $OutputDir
-  )
-
-  if ($ExtraArgs) {
-    $argsList += $ExtraArgs
-  }
-
-  & dotnet @argsList
-
-  if ($LASTEXITCODE -ne 0) {
-    throw "dotnet run failed with exit code $LASTEXITCODE"
-  }
-
-  Write-Host "[ok] inspection complete"
+if (-not (Test-Path $CliDll)) {
+  throw "[error] bundled CLI not found: $CliDll`n[hint] republish into skills/dotnet-assembly-inspector-local/bin/net8.0"
 }
-finally {
-  Pop-Location
+
+if (-not (Test-Path $InputPath)) {
+  throw "[error] input path not found: $InputPath"
 }
+
+New-Item -ItemType Directory -Force -Path $OutputDir | Out-Null
+
+Write-Host "[info] launch dir    : $LaunchDir"
+Write-Host "[info] cli dll       : $CliDll"
+Write-Host "[info] input         : $InputPath"
+Write-Host "[info] output        : $OutputDir"
+
+$argsList = @(
+  $CliDll,
+  $InputPath,
+  $OutputDir
+)
+
+if ($ExtraArgs) {
+  $argsList += $ExtraArgs
+}
+
+& dotnet @argsList
+
+if ($LASTEXITCODE -ne 0) {
+  throw "dotnet failed with exit code $LASTEXITCODE"
+}
+
+Write-Host "[ok] inspection complete"

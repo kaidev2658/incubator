@@ -7,6 +7,8 @@ description: Run .NET assembly inspection locally (without MCP) from coding agen
 
 Use this skill to inspect assemblies directly via local shell execution.
 
+This skill bundles a published `AssemblyInspector.Cli` payload under `bin/net8.0`, so users only need a compatible .NET runtime (no local source build required).
+
 ## Execute
 
 From the artifact home (`dotnet-assembly-inspector`), run:

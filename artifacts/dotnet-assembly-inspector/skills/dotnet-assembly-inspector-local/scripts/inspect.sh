@@ -2,8 +2,8 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-ARTIFACT_HOME="$(cd "$SCRIPT_DIR/../../.." && pwd)"
 CALLER_DIR="$(pwd)"
+CLI_DLL="$SCRIPT_DIR/../bin/net8.0/AssemblyInspector.Cli.dll"
 
 export PATH="/usr/local/share/dotnet:$PATH"
 export DOTNET_ROLL_FORWARD="${DOTNET_ROLL_FORWARD:-Major}"
@@ -32,7 +32,11 @@ else
   shift 1
 fi
 
-cd "$ARTIFACT_HOME"
+if [[ ! -f "$CLI_DLL" ]]; then
+  echo "[error] bundled CLI not found: $CLI_DLL"
+  echo "[hint] republish into skills/dotnet-assembly-inspector-local/bin/net8.0"
+  exit 3
+fi
 
 if [[ ! -e "$INPUT_PATH" ]]; then
   echo "[error] input path not found: $INPUT_PATH"
@@ -41,15 +45,12 @@ fi
 
 mkdir -p "$OUTPUT_DIR"
 
-echo "[info] artifact home : $ARTIFACT_HOME"
+echo "[info] launch dir    : $CALLER_DIR"
+echo "[info] cli dll       : $CLI_DLL"
 echo "[info] input         : $INPUT_PATH"
 echo "[info] output        : $OUTPUT_DIR"
 
-dotnet run \
-  --project src/AssemblyInspector.Cli \
-  --no-build \
-  -c Release \
-  -- \
+dotnet "$CLI_DLL" \
   "$INPUT_PATH" "$OUTPUT_DIR" "$@"
 
 echo "[ok] inspection complete"
