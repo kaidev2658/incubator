@@ -27,6 +27,14 @@
   - live/draft 상태 구분
   - one-tap 또는 quick publish 흐름
 
+## 2.5) Wabi 실행 흐름 단서(비공식)
+- Prompt 입력 -> RN 코드 생성 -> 플랫폼 내 빌드/실행
+- APK/IPA 개별 패키징 배포가 아닌 플랫폼 내부 샌드박스 실행 방식
+
+### Tizen PoC 의미
+- 스토어 배포를 목표로 잡기보다 "플랫폼 내부 실행기" 완성도가 우선
+- 런타임 격리/권한경계/버전복구가 핵심 검증축
+
 ## 3) 미니앱/마이크로앱 플랫폼 필수 요소
 1. **App Model(선언형)**
    - `manifest`, `ui_schema`, `actions`, `state_policy`
