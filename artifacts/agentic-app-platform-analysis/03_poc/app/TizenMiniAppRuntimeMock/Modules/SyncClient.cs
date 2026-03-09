@@ -1,13 +1,8 @@
+using TizenMiniApp.Shared.Scn01;
+
 namespace TizenMiniAppRuntimeMock.Modules;
 
-public interface ISyncClient
-{
-    SyncPublishResult Publish(MiniApp app);
-}
-
-public sealed record SyncPublishResult(bool IsSuccess, string Message);
-
-public sealed class MockSyncClient : ISyncClient
+public sealed class MockSyncPublisher : ISyncPublisher
 {
     public SyncPublishResult Publish(MiniApp app)
     {
@@ -18,7 +13,7 @@ public sealed class MockSyncClient : ISyncClient
 }
 
 // Skeleton for future real connector integration.
-public sealed class RemoteSyncClientSkeleton : ISyncClient
+public sealed class RemoteSyncPublisherSkeleton : ISyncPublisher
 {
     public SyncPublishResult Publish(MiniApp app)
     {

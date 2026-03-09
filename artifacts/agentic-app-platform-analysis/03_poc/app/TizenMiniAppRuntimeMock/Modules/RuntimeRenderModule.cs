@@ -1,4 +1,5 @@
 using System.Text.Json;
+using TizenMiniApp.Shared.Scn01;
 
 namespace TizenMiniAppRuntimeMock.Modules;
 
@@ -25,8 +26,8 @@ public sealed class RuntimeRenderModule
         Console.WriteLine($"[ValidationPanel] {message}");
     }
 
-    public void ShowState(RuntimeStore store)
+    public void ShowState(Scn01RuntimeState state)
     {
-        Console.WriteLine(JsonSerializer.Serialize(store, new JsonSerializerOptions { WriteIndented = true }));
+        Console.WriteLine(JsonSerializer.Serialize(state, new JsonSerializerOptions { WriteIndented = true }));
     }
 }

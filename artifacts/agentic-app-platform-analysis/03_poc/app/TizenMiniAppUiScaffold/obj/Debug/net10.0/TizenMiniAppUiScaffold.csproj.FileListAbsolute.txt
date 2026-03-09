@@ -1,0 +1,15 @@
+/Users/clawdev/workspace/github/incubator/artifacts/agentic-app-platform-analysis/03_poc/app/TizenMiniAppUiScaffold/bin/Debug/net10.0/TizenMiniAppUiScaffold
+/Users/clawdev/workspace/github/incubator/artifacts/agentic-app-platform-analysis/03_poc/app/TizenMiniAppUiScaffold/bin/Debug/net10.0/TizenMiniAppUiScaffold.deps.json
+/Users/clawdev/workspace/github/incubator/artifacts/agentic-app-platform-analysis/03_poc/app/TizenMiniAppUiScaffold/bin/Debug/net10.0/TizenMiniAppUiScaffold.runtimeconfig.json
+/Users/clawdev/workspace/github/incubator/artifacts/agentic-app-platform-analysis/03_poc/app/TizenMiniAppUiScaffold/bin/Debug/net10.0/TizenMiniAppUiScaffold.dll
+/Users/clawdev/workspace/github/incubator/artifacts/agentic-app-platform-analysis/03_poc/app/TizenMiniAppUiScaffold/bin/Debug/net10.0/TizenMiniAppUiScaffold.pdb
+/Users/clawdev/workspace/github/incubator/artifacts/agentic-app-platform-analysis/03_poc/app/TizenMiniAppUiScaffold/obj/Debug/net10.0/TizenMiniAppUiScaffold.GeneratedMSBuildEditorConfig.editorconfig
+/Users/clawdev/workspace/github/incubator/artifacts/agentic-app-platform-analysis/03_poc/app/TizenMiniAppUiScaffold/obj/Debug/net10.0/TizenMiniAppUiScaffold.AssemblyInfoInputs.cache
+/Users/clawdev/workspace/github/incubator/artifacts/agentic-app-platform-analysis/03_poc/app/TizenMiniAppUiScaffold/obj/Debug/net10.0/TizenMiniAppUiScaffold.AssemblyInfo.cs
+/Users/clawdev/workspace/github/incubator/artifacts/agentic-app-platform-analysis/03_poc/app/TizenMiniAppUiScaffold/obj/Debug/net10.0/TizenMiniAppUiScaffold.csproj.CoreCompileInputs.cache
+/Users/clawdev/workspace/github/incubator/artifacts/agentic-app-platform-analysis/03_poc/app/TizenMiniAppUiScaffold/obj/Debug/net10.0/TizenMiniAppUiScaffold.sourcelink.json
+/Users/clawdev/workspace/github/incubator/artifacts/agentic-app-platform-analysis/03_poc/app/TizenMiniAppUiScaffold/obj/Debug/net10.0/TizenMiniAppUiScaffold.dll
+/Users/clawdev/workspace/github/incubator/artifacts/agentic-app-platform-analysis/03_poc/app/TizenMiniAppUiScaffold/obj/Debug/net10.0/refint/TizenMiniAppUiScaffold.dll
+/Users/clawdev/workspace/github/incubator/artifacts/agentic-app-platform-analysis/03_poc/app/TizenMiniAppUiScaffold/obj/Debug/net10.0/TizenMiniAppUiScaffold.pdb
+/Users/clawdev/workspace/github/incubator/artifacts/agentic-app-platform-analysis/03_poc/app/TizenMiniAppUiScaffold/obj/Debug/net10.0/TizenMiniAppUiScaffold.genruntimeconfig.cache
+/Users/clawdev/workspace/github/incubator/artifacts/agentic-app-platform-analysis/03_poc/app/TizenMiniAppUiScaffold/obj/Debug/net10.0/ref/TizenMiniAppUiScaffold.dll

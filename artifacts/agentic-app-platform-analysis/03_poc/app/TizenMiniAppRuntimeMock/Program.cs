@@ -1,20 +1,17 @@
-using TizenMiniAppRuntimeMock;
+using TizenMiniApp.Shared.Scn01;
 using TizenMiniAppRuntimeMock.Modules;
-using TizenMiniAppRuntimeMock.Runtime;
 
-var store = new RuntimeStore();
 var renderer = new RuntimeRenderModule();
-var apiIndex = ApiMetadataIndex.LoadDefault();
+var policy = ApiMetadataIndexLoader.LoadDefaultPolicyEvaluator();
+var service = new Scn01LifecycleService(
+    new PromptEngine(),
+    policy,
+    new MockSyncPublisher(),
+    new KpiTracker());
 
-var executor = new ActionExecutor(
-    new PromptModule(),
-    new AppStateModule(store),
-    renderer,
-    new PolicyBridge(apiIndex),
-    new MockSyncClient(),
-    new KpiLogger());
+var executor = new ActionExecutor(service, renderer);
 
-renderer.Print($"api-index loaded: {apiIndex.IndexPath}; allowed=[{apiIndex.RenderAllowedActions()}]");
+renderer.Print($"api-index loaded: {service.PolicyIndexPath()}; allowed=[{service.RenderAllowedActions()}]");
 
 if (args.Length > 0)
 {
@@ -22,12 +19,10 @@ if (args.Length > 0)
     switch (startupCommand)
     {
         case "run-scn01":
-            var scn01Passed = executor.RunScn01();
-            Environment.ExitCode = scn01Passed ? 0 : 1;
+            Environment.ExitCode = executor.RunScn01() ? 0 : 1;
             return;
         case "ui-demo":
-            var uiDemoPassed = executor.RunUiDemo();
-            Environment.ExitCode = uiDemoPassed ? 0 : 1;
+            Environment.ExitCode = executor.RunUiDemo() ? 0 : 1;
             return;
         default:
             renderer.Print($"unknown startup command: {args[0]}");
