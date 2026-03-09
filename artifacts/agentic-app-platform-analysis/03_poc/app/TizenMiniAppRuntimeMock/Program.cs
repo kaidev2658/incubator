@@ -3,15 +3,16 @@ using TizenMiniAppRuntimeMock.Modules;
 using TizenMiniAppRuntimeMock.Runtime;
 
 var store = new RuntimeStore();
+var renderer = new RuntimeRenderModule();
+
 var executor = new ActionExecutor(
     new PromptModule(),
     new AppStateModule(store),
-    new RuntimeRenderModule(),
+    renderer,
     new PolicyBridge(),
-    new SyncClient(),
+    new MockSyncClient(),
     new KpiLogger());
 
-var renderer = new RuntimeRenderModule();
 renderer.Header();
 
 while (true)

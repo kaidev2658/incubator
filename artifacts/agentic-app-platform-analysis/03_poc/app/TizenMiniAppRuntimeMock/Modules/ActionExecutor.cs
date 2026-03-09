@@ -9,7 +9,7 @@ public sealed class ActionExecutor
     private readonly AppStateModule _stateModule;
     private readonly RuntimeRenderModule _renderModule;
     private readonly PolicyBridge _policyBridge;
-    private readonly SyncClient _syncClient;
+    private readonly ISyncClient _syncClient;
     private readonly KpiLogger _kpiLogger;
 
     public ActionExecutor(
@@ -17,7 +17,7 @@ public sealed class ActionExecutor
         AppStateModule stateModule,
         RuntimeRenderModule renderModule,
         PolicyBridge policyBridge,
-        SyncClient syncClient,
+        ISyncClient syncClient,
         KpiLogger kpiLogger)
     {
         _promptModule = promptModule;
@@ -73,19 +73,19 @@ public sealed class ActionExecutor
         }
 
         var stopwatch = Stopwatch.StartNew();
-        var published = _syncClient.Publish(store.Draft);
+        var publish = _syncClient.Publish(store.Draft);
         stopwatch.Stop();
         _kpiLogger.MarkDeployLatency(stopwatch.ElapsedMilliseconds);
 
-        if (!published)
+        if (!publish.IsSuccess)
         {
-            _renderModule.Print("deploy failed on sync publish (mock)");
+            _renderModule.Print($"deploy failed on sync publish: {publish.Message}");
             return;
         }
 
         var deployed = _stateModule.TryDeployDraft(out var live) && live is not null;
         _renderModule.Print(deployed
-            ? $"deployed live: {live!.AppId}@{live.Version} ({policy.Reason})"
+            ? $"deployed live: {live!.AppId}@{live.Version} ({policy.Reason}, {publish.Message})"
             : "deploy failed: no draft");
     }
 
@@ -111,7 +111,10 @@ public sealed class ActionExecutor
 
     public void ValidateRollbackScenario()
     {
+        _renderModule.Print("validate: step 1/5 generate");
         Generate("validation-base");
+
+        _renderModule.Print("validate: step 2/5 deploy v1");
         Deploy();
 
         var firstLive = _stateModule.Snapshot().Live;
@@ -122,7 +125,10 @@ public sealed class ActionExecutor
             return;
         }
 
+        _renderModule.Print("validate: step 3/5 update draft");
         Update("validation-partial-update");
+
+        _renderModule.Print("validate: step 4/5 deploy v2");
         Deploy();
 
         var secondLive = _stateModule.Snapshot().Live;
@@ -133,6 +139,7 @@ public sealed class ActionExecutor
             return;
         }
 
+        _renderModule.Print("validate: step 5/5 rollback to v1");
         Rollback();
 
         var afterRollback = _stateModule.Snapshot().Live;
