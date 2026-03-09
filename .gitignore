@@ -13,3 +13,6 @@ USER.md
 artifacts/agentic-app-platform-analysis/03_poc/app/TizenMiniAppRuntimeMock/bin/
 artifacts/agentic-app-platform-analysis/03_poc/app/TizenMiniAppRuntimeMock/obj/
 artifacts/agentic-app-platform-analysis/03_poc/eval/
+
+artifacts/agentic-app-platform-analysis/03_poc/app/TizenMiniAppUiScaffold/bin/
+artifacts/agentic-app-platform-analysis/03_poc/app/TizenMiniAppUiScaffold/obj/
