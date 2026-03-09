@@ -12,3 +12,4 @@ USER.md
 # PoC build artifacts
 artifacts/agentic-app-platform-analysis/03_poc/app/TizenMiniAppRuntimeMock/bin/
 artifacts/agentic-app-platform-analysis/03_poc/app/TizenMiniAppRuntimeMock/obj/
+artifacts/agentic-app-platform-analysis/03_poc/eval/

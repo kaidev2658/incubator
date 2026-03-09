@@ -25,6 +25,10 @@ if (args.Length > 0)
             var scn01Passed = executor.RunScn01();
             Environment.ExitCode = scn01Passed ? 0 : 1;
             return;
+        case "ui-demo":
+            var uiDemoPassed = executor.RunUiDemo();
+            Environment.ExitCode = uiDemoPassed ? 0 : 1;
+            return;
         default:
             renderer.Print($"unknown startup command: {args[0]}");
             Environment.ExitCode = 2;
@@ -63,6 +67,9 @@ while (true)
             break;
         case "validate":
             executor.ValidateRollbackScenario();
+            break;
+        case "ui-demo":
+            executor.RunUiDemo();
             break;
         case "kpi":
             executor.ShowKpi();
