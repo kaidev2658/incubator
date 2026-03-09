@@ -193,7 +193,7 @@ public sealed class ActionExecutor
         {
             _kpiLogger.MarkE2E(success: false);
             _renderModule.Print("scn01 failed: generate failed");
-            _renderModule.Print($"SCN01_KPI_JSON={_kpiLogger.RenderCompactJson()}");
+            PrintScn01Kpi();
             return false;
         }
 
@@ -202,7 +202,7 @@ public sealed class ActionExecutor
         {
             _kpiLogger.MarkE2E(success: false);
             _renderModule.Print("scn01 failed: first deploy failed");
-            _renderModule.Print($"SCN01_KPI_JSON={_kpiLogger.RenderCompactJson()}");
+            PrintScn01Kpi();
             return false;
         }
 
@@ -211,7 +211,7 @@ public sealed class ActionExecutor
         {
             _kpiLogger.MarkE2E(success: false);
             _renderModule.Print("scn01 failed: first deploy missing live");
-            _renderModule.Print($"SCN01_KPI_JSON={_kpiLogger.RenderCompactJson()}");
+            PrintScn01Kpi();
             return false;
         }
 
@@ -220,7 +220,7 @@ public sealed class ActionExecutor
         {
             _kpiLogger.MarkE2E(success: false);
             _renderModule.Print("scn01 failed: update failed");
-            _renderModule.Print($"SCN01_KPI_JSON={_kpiLogger.RenderCompactJson()}");
+            PrintScn01Kpi();
             return false;
         }
 
@@ -229,7 +229,7 @@ public sealed class ActionExecutor
         {
             _kpiLogger.MarkE2E(success: false);
             _renderModule.Print("scn01 failed: second deploy failed");
-            _renderModule.Print($"SCN01_KPI_JSON={_kpiLogger.RenderCompactJson()}");
+            PrintScn01Kpi();
             return false;
         }
 
@@ -238,7 +238,7 @@ public sealed class ActionExecutor
         {
             _kpiLogger.MarkE2E(success: false);
             _renderModule.Print("scn01 failed: second deploy did not advance version");
-            _renderModule.Print($"SCN01_KPI_JSON={_kpiLogger.RenderCompactJson()}");
+            PrintScn01Kpi();
             return false;
         }
 
@@ -247,17 +247,50 @@ public sealed class ActionExecutor
         {
             _kpiLogger.MarkE2E(success: false);
             _renderModule.Print("scn01 failed: rollback failed");
-            _renderModule.Print($"SCN01_KPI_JSON={_kpiLogger.RenderCompactJson()}");
+            PrintScn01Kpi();
             return false;
         }
 
         var afterRollback = _stateModule.Snapshot().Live;
         var rollbackOk = afterRollback is not null && afterRollback.Version == firstLive.Version;
-        _kpiLogger.MarkE2E(rollbackOk);
-        _renderModule.Print(rollbackOk
+        if (!rollbackOk)
+        {
+            _kpiLogger.MarkE2E(success: false);
+            _renderModule.Print("scn01 failed: rollback did not restore previous live");
+            PrintScn01Kpi();
+            return false;
+        }
+
+        _renderModule.Print("scn01: fail-safe check blocked actions (camera, microphone)");
+        var blockedExamplesOk = RunBlockedActionExamples();
+        _kpiLogger.MarkE2E(blockedExamplesOk);
+
+        _renderModule.Print(blockedExamplesOk
             ? "scn01 success: generate/update/deploy/rollback scenario passed"
-            : "scn01 failed: rollback did not restore previous live");
+            : "scn01 failed: forbidden action was unexpectedly allowed");
+        PrintScn01Kpi();
+        return blockedExamplesOk;
+    }
+
+    private bool RunBlockedActionExamples()
+    {
+        var camera = _policyBridge.ValidateAction("camera");
+        var cameraBlocked = !camera.IsAllowed;
+        _renderModule.Print(cameraBlocked
+            ? $"scn01: expected block camera -> {camera.Reason}"
+            : "scn01: unexpected allow camera");
+
+        var microphone = _policyBridge.ValidateAction("microphone");
+        var microphoneBlocked = !microphone.IsAllowed;
+        _renderModule.Print(microphoneBlocked
+            ? $"scn01: expected block microphone -> {microphone.Reason}"
+            : "scn01: unexpected allow microphone");
+
+        return cameraBlocked && microphoneBlocked;
+    }
+
+    private void PrintScn01Kpi()
+    {
         _renderModule.Print($"SCN01_KPI_JSON={_kpiLogger.RenderCompactJson()}");
-        return rollbackOk;
     }
 }

@@ -1,0 +1,21 @@
+{
+  "version": "0.1.0",
+  "source": "local-poc-index",
+  "allowedApis": [
+    {
+      "id": "location",
+      "description": "Read current location coordinates for context-aware mini-app features.",
+      "scope": "read"
+    },
+    {
+      "id": "calendar.read",
+      "description": "Read calendar events for scheduling and timeline summaries.",
+      "scope": "read"
+    },
+    {
+      "id": "contacts.read",
+      "description": "Read contacts metadata for user-selected communication workflows.",
+      "scope": "read"
+    }
+  ]
+}

@@ -4,14 +4,17 @@ using TizenMiniAppRuntimeMock.Runtime;
 
 var store = new RuntimeStore();
 var renderer = new RuntimeRenderModule();
+var apiIndex = ApiMetadataIndex.LoadDefault();
 
 var executor = new ActionExecutor(
     new PromptModule(),
     new AppStateModule(store),
     renderer,
-    new PolicyBridge(),
+    new PolicyBridge(apiIndex),
     new MockSyncClient(),
     new KpiLogger());
+
+renderer.Print($"api-index loaded: {apiIndex.IndexPath}; allowed=[{apiIndex.RenderAllowedActions()}]");
 
 if (args.Length > 0)
 {
