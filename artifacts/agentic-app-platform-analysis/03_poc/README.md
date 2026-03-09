@@ -3,31 +3,37 @@
 ## Objective
 Tizen 10에서 Wabi/Essential Apps와 유사한 Agentic mini-app 플랫폼의 생성/실행/관리 흐름을 빠르게 검증
 
+## Transition Stage (2026-03-09)
+- 기존 콘솔 런타임 mock을 유지하면서, Tizen UI 연동 전단계로 `TizenMiniAppUiScaffold`를 추가했다.
+- SCN-01 공통 도메인 로직(generate/update/deploy/rollback + KPI + policy check)은 `app/shared/`로 추출했다.
+- 런타임 mock과 UI scaffold는 동일한 shared 로직을 소비한다.
+- `app/MockOrchestratorApi` 로컬 API를 추가해 runtime/scaffold SyncClient가 `/deploy`를 우선 호출하고, 서버 비가용 시 fallback mock 모드로 동작한다.
+
 ## Demo Scenario v1
 - Scenario ID: `SCN-01 Agentic Mini-App Platform on Tizen`
 - Goal: "Tizen에서 Wabi 같은 에이전트 미니앱 플랫폼 데모"
 
-### E2E Flow
-1. 사용자 자연어 입력으로 미니앱 생성 요청
-2. 에이전트가 앱 초안 생성
-3. 부분 수정(Partial Update) 반영
-4. 배포 후 실행
-5. 버전 롤백(복구) 확인
-
-## Platform / Runtime Decisions
-- Target: Tizen 10 (TV 또는 Public Tizen IoT headed, 단일기기 우선)
-- Architecture: 서버 중심 오케스트레이션 우선
-- App model (v1): .NET (C#) 우선
-- Out of scope (v1): 오프라인 필수 요구, 민감권한 심화정책, camera/microphone/bluetooth/calling
-
-## Runtime Structure (Mock)
-- `PromptModule`: 프롬프트 기반 draft 생성/partial update
-- `AppStateModule`: draft/live/previous_live 상태 전이
-- `RuntimeRenderModule`: CLI 렌더링 및 상태 출력
-- `ActionExecutor`: generate/update/deploy/rollback/validate orchestration
-- `PolicyBridge`: 정책 검증 mock bridge
-- `ISyncClient` + `MockSyncClient` + `RemoteSyncClientSkeleton`: 서버 sync publish skeleton
-- `KpiLogger`: KPI 집계 및 출력
+## Runtime Structure (Transition)
+- `app/shared/`
+  - `PromptEngine`: draft 생성/partial update
+  - `PolicyEvaluator`: API index 기반 허용/차단 검증
+  - `Scn01LifecycleService`: generate/update/deploy/rollback 상태 전이 orchestration
+  - `KpiTracker`: KPI 집계/JSON 출력
+  - `ApiMetadataIndexLoader`: `agent-core/api-index/allowed-apis.json` 로딩
+- `app/MockOrchestratorApi/`
+  - 로컬 mock orchestrator API
+  - endpoint: `/generate`, `/update`, `/deploy`, `/rollback`, `/apps/{id}`
+  - SCN-01 deterministic response (permissions allowlist 고정: `location`, `calendar.read`, `contacts.read`)
+- `app/TizenMiniAppRuntimeMock/`
+  - CLI 실행/검증용 런타임
+  - `SyncClient`가 local orchestrator API(`/deploy`) 호출
+  - API 비가용 시 fallback mock publish 유지
+  - 기존 SCN-01 시나리오 로그(`run-scn01`, `ui-demo`) 유지
+- `app/TizenMiniAppUiScaffold/`
+  - Tizen UI 연동 준비용 스캐폴드
+  - `ScreenStatePresenter`가 구조화된 화면 상태 객체 출력
+  - `SyncClient`가 local orchestrator API(`/deploy`) 호출
+  - 출력 타입: `PromptInput`, `DraftPreview`, `LiveView`, `ValidationPanel`
 
 ## Environment (Required)
 ```bash
@@ -35,7 +41,13 @@ export PATH="/usr/local/share/dotnet:$PATH"
 /usr/local/share/dotnet/dotnet --info
 ```
 
-## Run
+## Runtime Configuration
+- `ORCHESTRATOR_API_BASE_URL` (default: `http://127.0.0.1:5081`)
+- `ORCHESTRATOR_SYNC_MODE=mock` 설정 시 API 호출 없이 fallback mock 강제
+
+## Run Commands (Exact)
+
+### 1) Runtime Mock (interactive)
 ```bash
 cd artifacts/agentic-app-platform-analysis/03_poc/app/TizenMiniAppRuntimeMock
 export PATH="/usr/local/share/dotnet:$PATH"
@@ -43,46 +55,45 @@ export PATH="/usr/local/share/dotnet:$PATH"
 /usr/local/share/dotnet/dotnet run
 ```
 
-## CLI Commands
-- `generate <prompt>`: draft 생성
-- `update <prompt>`: partial update로 draft 버전 증가
-- `deploy`: 정책 검증 + sync mock 후 live 반영
-- `rollback`: 이전 live로 복구
-- `validate`: rollback 포함 E2E 검증 시나리오 1회 실행
-- `kpi`: KPI JSON 출력
-- `show`: 현재 runtime state 출력
-- `exit`: 종료
-
-## Validation (Rollback + KPI)
-런타임 실행 후 아래 순서로 검증:
-```text
-validate
-kpi
-show
+### 2) Runtime Mock SCN-01 (non-interactive)
+```bash
+cd artifacts/agentic-app-platform-analysis/03_poc/app/TizenMiniAppRuntimeMock
+export PATH="/usr/local/share/dotnet:$PATH"
+/usr/local/share/dotnet/dotnet build
+/usr/local/share/dotnet/dotnet run -- run-scn01
 ```
 
-`validate` 성공 시 기대 로그:
-- `validate: step 1/5 generate`
-- `validate: step 2/5 deploy v1`
-- `validate: step 3/5 update draft`
-- `validate: step 4/5 deploy v2`
-- `validate: step 5/5 rollback to v1`
-- `validate success: generate/update/deploy/rollback scenario passed`
+### 3) Runtime Mock UI Demo (non-interactive)
+```bash
+cd artifacts/agentic-app-platform-analysis/03_poc/app/TizenMiniAppRuntimeMock
+export PATH="/usr/local/share/dotnet:$PATH"
+/usr/local/share/dotnet/dotnet build
+/usr/local/share/dotnet/dotnet run -- ui-demo
+```
 
-`kpi` 출력에서 확인할 KPI:
-- `generate_success` > 0
-- `e2e_success` > 0
-- `deploy_latency_ms` > 0
-- `rollback_success` > 0
+### 4) Tizen UI Scaffold (structured state output)
+```bash
+cd artifacts/agentic-app-platform-analysis/03_poc/app/TizenMiniAppUiScaffold
+export PATH="/usr/local/share/dotnet:$PATH"
+/usr/local/share/dotnet/dotnet build
+/usr/local/share/dotnet/dotnet run
+```
 
-추가 확인 필드:
-- `generate_attempts`
-- `e2e_attempts`
-- `deploy_count`
-- `rollback_attempts`
+### 5) Full Local E2E (mock orchestrator API + SCN-01 + UI Demo + KPI artifact)
+```bash
+cd artifacts/agentic-app-platform-analysis/03_poc
+./scripts/run-local-e2e.sh
+```
+
+## Script Wrappers
+- `./scripts/run-scn01.sh`
+- `./scripts/run-ui-demo.sh`
+- `./scripts/run-local-e2e.sh`
 
 ## Done Criteria
 - 생성 성공률 KPI 측정 가능
 - 생성→실행→관리(E2E) 성공 여부 측정 가능
 - Partial Update + Rollback 검증 가능
-- 재실행 가능한 CLI 기반 절차 제공
+- API index 외 액션(camera/microphone) 차단 로그 검증 가능
+- Runtime mock + UI scaffold 모두 shared domain 로직 재사용
+- 로컬 mock orchestrator API 경유 full local E2E 경로 검증 가능

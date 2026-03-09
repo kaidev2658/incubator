@@ -1,4 +1,5 @@
 using System.Text.Json;
+using TizenMiniApp.Shared.Scn01;
 
 namespace TizenMiniAppRuntimeMock.Modules;
 
@@ -7,7 +8,7 @@ public sealed class RuntimeRenderModule
     public void Header()
     {
         Console.WriteLine("[SCN-01] Agentic Mini-App Platform on Tizen (Mock Runtime)");
-        Console.WriteLine("Commands: generate <prompt> | update <prompt> | deploy | rollback | validate | kpi | show | exit");
+        Console.WriteLine("Commands: generate <prompt> | update <prompt> | deploy | rollback | validate | ui-demo | kpi | show | exit");
     }
 
     public void Print(string message)
@@ -15,8 +16,18 @@ public sealed class RuntimeRenderModule
         Console.WriteLine(message);
     }
 
-    public void ShowState(RuntimeStore store)
+    public void ShowUiStage(UiView view, int stageIndex, int stageTotal, string message)
     {
-        Console.WriteLine(JsonSerializer.Serialize(store, new JsonSerializerOptions { WriteIndented = true }));
+        Console.WriteLine($"[UI {stageIndex}/{stageTotal}] {view}: {message}");
+    }
+
+    public void ShowValidationPanelLine(string message)
+    {
+        Console.WriteLine($"[ValidationPanel] {message}");
+    }
+
+    public void ShowState(Scn01RuntimeState state)
+    {
+        Console.WriteLine(JsonSerializer.Serialize(state, new JsonSerializerOptions { WriteIndented = true }));
     }
 }

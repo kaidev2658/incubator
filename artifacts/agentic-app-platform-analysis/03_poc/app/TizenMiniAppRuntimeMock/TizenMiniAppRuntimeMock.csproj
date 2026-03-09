@@ -5,4 +5,15 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
   </PropertyGroup>
+  <ItemGroup>
+    <Compile Remove="Models.cs" />
+    <Compile Remove="Runtime/KpiLogger.cs" />
+    <Compile Remove="Modules/PromptModule.cs" />
+    <Compile Remove="Modules/AppStateModule.cs" />
+    <Compile Remove="Modules/PolicyBridge.cs" />
+    <Compile Remove="Modules/ApiMetadataIndex.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="../shared/**/*.cs" LinkBase="shared" />
+  </ItemGroup>
 </Project>

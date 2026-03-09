@@ -5,41 +5,34 @@
 - Language: .NET (C#) 우선
 - Single-device first
 
-## 2) 클라이언트 구조 (경량)
-### 2.1 Modules
-1. `PromptModule`
-   - 사용자 입력/수정 입력 수집
-2. `AppStateModule`
-   - draft/live/previous_live 상태 관리
-3. `RuntimeRenderModule`
-   - ui_schema -> 화면 구성
-4. `ActionExecutor`
-   - actions 실행(허용된 API만)
-5. `PolicyBridge`
-   - 권한 확인/승인 프롬프트/차단 처리
-6. `SyncClient`
-   - generate/update/deploy/rollback API 호출
+## 2) 전환 단계 (Console Mock -> UI Scaffold)
+- 현재 단계는 **runtime mock + UI scaffold 공존** 단계다.
+- SCN-01 핵심 도메인 로직은 `03_poc/app/shared/`로 분리해 재사용한다.
+- `TizenMiniAppRuntimeMock`은 시나리오 검증/운영 로그 기준선 역할을 유지한다.
+- `TizenMiniAppUiScaffold`는 실제 Tizen view layer로 교체 가능한 presenter 기반 화면 상태 출력 계층을 제공한다.
 
-### 2.2 이유
-- Tizen 단에서는 "해석/실행"에 집중
-- 복잡한 생성 추론/검증은 서버로 위임
+## 3) 모듈 구조 (Transition)
+1. `shared/PromptEngine`
+   - 사용자 입력 기반 draft 생성, partial update
+2. `shared/Scn01LifecycleService`
+   - generate/update/deploy/rollback 상태 전이 orchestration
+3. `shared/PolicyEvaluator`
+   - API metadata index allow-list 기반 정책 검증
+4. `shared/KpiTracker`
+   - generate/e2e/deploy latency/rollback KPI 집계
+5. `TizenMiniAppUiScaffold/ScreenStatePresenter`
+   - `PromptInput`, `DraftPreview`, `LiveView`, `ValidationPanel` 구조화 상태 출력
 
-## 3) Tizen API 맵핑 (v1)
+## 4) Tizen API 맵핑 (v1)
 - Location -> 허용
 - Calendar read -> 허용
 - Contacts read -> 허용
 - Camera/Microphone/Bluetooth/Calling -> 차단(phase-1)
 
-## 4) 렌더링 전략
-- v1: 선언형 `ui_schema`를 표준 컴포넌트로 매핑
-  - Text, List, Button, Timer, Badge 등 최소 셋
-- 레이아웃:
-  - 우선 2x2, 4x2 위젯형 레이아웃 지원
-
 ## 5) 배포/업데이트/복구 전략
 1. Generate 결과는 항상 draft
 2. Deploy 시 draft -> live 승격
-3. Update는 diff 기반 draft 갱신
+3. Update는 draft 버전 증가
 4. 오류/품질 저하 시 live -> previous_live rollback
 
 ## 6) 장애 대응 전략
@@ -53,9 +46,10 @@
 - 전체 생성+배포 평균 <= 12s
 
 ## 8) 구현 체크리스트
-- [ ] C# Tizen 프로젝트 생성
-- [ ] API Client 4종(generate/update/deploy/rollback)
-- [ ] ui_schema 렌더러 최소 컴포넌트 세트
-- [ ] policy bridge(allow/deny)
-- [ ] rollback 버튼/흐름
-- [ ] 이벤트 로깅(성공/실패/시간)
+- [x] C# runtime mock 프로젝트
+- [x] C# UI scaffold 프로젝트
+- [x] shared SCN-01 lifecycle domain 분리
+- [x] policy bridge(allow/deny)
+- [x] rollback 흐름
+- [x] KPI 집계
+- [ ] 실제 Tizen UI binding

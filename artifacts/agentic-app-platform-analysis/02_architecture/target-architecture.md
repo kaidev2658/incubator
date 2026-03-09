@@ -5,11 +5,16 @@
 - partial update + rollback 필수
 - 서버 중심 오케스트레이션, 클라이언트 경량화
 
-## 2) 시스템 구성도 (Logical)
+## 2) Transition Snapshot (2026-03-09)
+- `03_poc/app/shared/`에 SCN-01 공통 도메인 로직을 위치시킴
+- `TizenMiniAppRuntimeMock`과 `TizenMiniAppUiScaffold`가 동일 shared lifecycle을 사용
+- UI 계층은 presenter 출력 객체(`PromptInput`, `DraftPreview`, `LiveView`, `ValidationPanel`)를 통해 실제 Tizen view adapter 교체 가능 구조로 정리
+
+## 3) 시스템 구성도 (Logical)
 1. **Tizen Client (.NET C#)**
-   - Prompt 입력 UI
-   - Draft/Live 상태 뷰
-   - Deploy / Update / Rollback 트리거
+   - Runtime Mock Host (검증용)
+   - UI Scaffold Host (화면 상태 presenter)
+   - Shared Lifecycle Domain (SCN-01 공통)
 2. **API Gateway**
    - 인증/요청검증/레이트리밋
 3. **Orchestrator**
@@ -23,13 +28,12 @@
    - 앱 정의(manifest/ui_schema/actions/state_policy)
    - 버전(draft/live), 변경이력
 6. **Runtime Adapter (Tizen)**
-   - 앱 스키마를 Tizen UI/행동으로 해석
-   - 권한 브로커 + 이벤트 루프
+   - presenter state -> 실제 Tizen UI component 매핑(다음 단계)
 7. **Observability**
    - 생성성공률, E2E 성공률, 지연, rollback 성공률
 
-## 3) 데이터 모델 (v1)
-### 3.1 AppDefinition
+## 4) 데이터 모델 (v1)
+### 4.1 AppDefinition
 ```json
 {
   "appId": "miniapp-uuid",
@@ -56,33 +60,17 @@
 }
 ```
 
-### 3.2 Version 모델
+### 4.2 Version 모델
 - `draft`: 편집 중
 - `live`: 배포됨
 - `previous_live`: rollback 대상
 
-## 4) 핵심 API 계약 (v1)
+## 5) 핵심 API 계약 (v1)
 - `POST /v1/apps/generate`
-  - input: prompt, constraints
-  - output: appId, draft version
 - `POST /v1/apps/{appId}/update`
-  - input: patch prompt or structured diff
-  - output: new draft version
 - `POST /v1/apps/{appId}/deploy`
-  - input: draft version
-  - output: live version + deployedAt
 - `POST /v1/apps/{appId}/rollback`
-  - output: restored live version
 - `GET /v1/apps/{appId}`
-  - output: latest app definition + states
-
-## 5) 시퀀스 (SCN-01)
-1. 사용자 prompt 입력
-2. Generate 호출 -> draft 생성
-3. 사용자 수정 요청 -> Update 호출
-4. Validator(권한/스키마) 통과
-5. Deploy 호출 -> live 반영
-6. 오류 유도 시 Rollback -> previous_live 복구
 
 ## 6) 정책/보안 경계
 - allow: location, calendar.read, contacts.read
@@ -97,6 +85,6 @@
 - 장애 원인 추적 가능한 로그 필수
 
 ## 8) 오픈 이슈
-- Tizen 런타임 렌더링 방식(네이티브 UI vs 웹뷰 혼합) 최종 선택
+- 실제 Tizen 런타임 UI binding 방식 확정
 - auth 방식(로컬 토큰 vs 외부 OAuth) 단순화 여부
 - 스키마 마이그레이션 전략(v2)

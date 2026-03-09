@@ -1,17 +1,35 @@
-using TizenMiniAppRuntimeMock;
+using TizenMiniApp.Shared.Scn01;
 using TizenMiniAppRuntimeMock.Modules;
-using TizenMiniAppRuntimeMock.Runtime;
 
-var store = new RuntimeStore();
 var renderer = new RuntimeRenderModule();
+var policy = ApiMetadataIndexLoader.LoadDefaultPolicyEvaluator();
+var service = new Scn01LifecycleService(
+    new PromptEngine(),
+    policy,
+    new SyncClient(),
+    new KpiTracker());
 
-var executor = new ActionExecutor(
-    new PromptModule(),
-    new AppStateModule(store),
-    renderer,
-    new PolicyBridge(),
-    new MockSyncClient(),
-    new KpiLogger());
+var executor = new ActionExecutor(service, renderer);
+
+renderer.Print($"api-index loaded: {service.PolicyIndexPath()}; allowed=[{service.RenderAllowedActions()}]");
+
+if (args.Length > 0)
+{
+    var startupCommand = args[0].ToLowerInvariant();
+    switch (startupCommand)
+    {
+        case "run-scn01":
+            Environment.ExitCode = executor.RunScn01() ? 0 : 1;
+            return;
+        case "ui-demo":
+            Environment.ExitCode = executor.RunUiDemo() ? 0 : 1;
+            return;
+        default:
+            renderer.Print($"unknown startup command: {args[0]}");
+            Environment.ExitCode = 2;
+            return;
+    }
+}
 
 renderer.Header();
 
@@ -44,6 +62,9 @@ while (true)
             break;
         case "validate":
             executor.ValidateRollbackScenario();
+            break;
+        case "ui-demo":
+            executor.RunUiDemo();
             break;
         case "kpi":
             executor.ShowKpi();
