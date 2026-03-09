@@ -6,7 +6,7 @@
 
 ## 구조
 - `00_meta/` 목표/의사결정/로드맵
-- `01_research/` 조사 문서 및 출처
+- `01_research/` 조사 문서(개별 + 통합본)
 - `02_architecture/` 타깃 아키텍처 및 Tizen 적용전략
 - `03_poc/` PoC 코드/실행/평가
 - `04_validation/` 테스트/벤치마크/보안체크
@@ -15,6 +15,7 @@
 
 ## 현재 상태
 - 초기 구조 및 핵심 템플릿 생성 완료
-- 리서치 브리프 작성 완료:
+- 리서치 문서:
+  - `01_research/integrated-tech-brief_ko.md` (통합본, 지속 업데이트)
   - `01_research/wabi/product-tech-brief.md`
-  - `01_research/nothing-essential-space/product-tech-brief.md`
+  - `01_research/nothing-os-essential-apps/product-tech-brief.md`
