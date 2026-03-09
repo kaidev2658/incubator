@@ -35,12 +35,31 @@ export PATH="/usr/local/share/dotnet:$PATH"
 /usr/local/share/dotnet/dotnet --info
 ```
 
-## Run
+## Build + SCN-01 (Recommended)
+```bash
+cd artifacts/agentic-app-platform-analysis/03_poc
+./scripts/run-scn01.sh
+```
+
+Expected output artifacts:
+- `eval/scn01-build-<timestamp>.log`
+- `eval/scn01-run-<timestamp>.log`
+- `eval/scn01-kpi-<timestamp>.json`
+
+## Run (Interactive CLI)
 ```bash
 cd artifacts/agentic-app-platform-analysis/03_poc/app/TizenMiniAppRuntimeMock
 export PATH="/usr/local/share/dotnet:$PATH"
 /usr/local/share/dotnet/dotnet build
 /usr/local/share/dotnet/dotnet run
+```
+
+## Run (Non-interactive SCN-01)
+```bash
+cd artifacts/agentic-app-platform-analysis/03_poc/app/TizenMiniAppRuntimeMock
+export PATH="/usr/local/share/dotnet:$PATH"
+/usr/local/share/dotnet/dotnet build
+/usr/local/share/dotnet/dotnet run -- run-scn01
 ```
 
 ## CLI Commands
@@ -52,6 +71,12 @@ export PATH="/usr/local/share/dotnet:$PATH"
 - `kpi`: KPI JSON 출력
 - `show`: 현재 runtime state 출력
 - `exit`: 종료
+
+## SCN-01 KPI JSON
+`run-scn01` 실행 시 stdout에 단일 라인이 출력된다.
+```text
+SCN01_KPI_JSON={"generate_success":1,"e2e_success":1,"deploy_latency_ms":123.45,"rollback_success":1,"generate_attempts":1,"e2e_attempts":1,"deploy_count":2,"rollback_attempts":1}
+```
 
 ## Validation (Rollback + KPI)
 런타임 실행 후 아래 순서로 검증:

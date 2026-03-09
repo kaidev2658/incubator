@@ -28,7 +28,7 @@ public sealed class ActionExecutor
         _kpiLogger = kpiLogger;
     }
 
-    public void Generate(string prompt)
+    public bool Generate(string prompt)
     {
         try
         {
@@ -36,40 +36,43 @@ public sealed class ActionExecutor
             _stateModule.SetDraft(draft);
             _kpiLogger.MarkGenerate(success: true);
             _renderModule.Print($"generated: {draft.AppId} from prompt='{prompt}'");
+            return true;
         }
         catch
         {
             _kpiLogger.MarkGenerate(success: false);
             _renderModule.Print("generation failed");
+            return false;
         }
     }
 
-    public void Update(string partialPrompt)
+    public bool Update(string partialPrompt)
     {
         var ok = _stateModule.TryUpdateDraft(d => _promptModule.PartialUpdate(d, partialPrompt), out var updated);
         if (!ok || updated is null)
         {
             _renderModule.Print("no draft. run generate first");
-            return;
+            return false;
         }
 
         _renderModule.Print($"updated draft -> version {updated.Version} (partial update: '{partialPrompt}')");
+        return true;
     }
 
-    public void Deploy()
+    public bool Deploy()
     {
         var store = _stateModule.Snapshot();
         if (store.Draft is null)
         {
             _renderModule.Print("no draft to deploy");
-            return;
+            return false;
         }
 
         var policy = _policyBridge.Validate(store.Draft);
         if (!policy.IsAllowed)
         {
             _renderModule.Print($"deploy blocked: {policy.Reason}");
-            return;
+            return false;
         }
 
         var stopwatch = Stopwatch.StartNew();
@@ -80,16 +83,17 @@ public sealed class ActionExecutor
         if (!publish.IsSuccess)
         {
             _renderModule.Print($"deploy failed on sync publish: {publish.Message}");
-            return;
+            return false;
         }
 
         var deployed = _stateModule.TryDeployDraft(out var live) && live is not null;
         _renderModule.Print(deployed
             ? $"deployed live: {live!.AppId}@{live.Version} ({policy.Reason}, {publish.Message})"
             : "deploy failed: no draft");
+        return deployed;
     }
 
-    public void Rollback()
+    public bool Rollback()
     {
         var restored = _stateModule.TryRollback(out var live) && live is not null;
         _kpiLogger.MarkRollback(restored);
@@ -97,6 +101,7 @@ public sealed class ActionExecutor
         _renderModule.Print(restored
             ? $"rollback restored: {live!.AppId}@{live.Version}"
             : "no previous_live to restore");
+        return restored;
     }
 
     public void Show()
@@ -109,38 +114,63 @@ public sealed class ActionExecutor
         _renderModule.Print(_kpiLogger.RenderJson());
     }
 
-    public void ValidateRollbackScenario()
+    public bool ValidateRollbackScenario()
     {
         _renderModule.Print("validate: step 1/5 generate");
-        Generate("validation-base");
+        if (!Generate("validation-base"))
+        {
+            _kpiLogger.MarkE2E(success: false);
+            _renderModule.Print("validate failed: generate failed");
+            return false;
+        }
 
         _renderModule.Print("validate: step 2/5 deploy v1");
-        Deploy();
+        if (!Deploy())
+        {
+            _kpiLogger.MarkE2E(success: false);
+            _renderModule.Print("validate failed: first deploy failed");
+            return false;
+        }
 
         var firstLive = _stateModule.Snapshot().Live;
         if (firstLive is null)
         {
             _kpiLogger.MarkE2E(success: false);
             _renderModule.Print("validate failed: first deploy missing live");
-            return;
+            return false;
         }
 
         _renderModule.Print("validate: step 3/5 update draft");
-        Update("validation-partial-update");
+        if (!Update("validation-partial-update"))
+        {
+            _kpiLogger.MarkE2E(success: false);
+            _renderModule.Print("validate failed: update failed");
+            return false;
+        }
 
         _renderModule.Print("validate: step 4/5 deploy v2");
-        Deploy();
+        if (!Deploy())
+        {
+            _kpiLogger.MarkE2E(success: false);
+            _renderModule.Print("validate failed: second deploy failed");
+            return false;
+        }
 
         var secondLive = _stateModule.Snapshot().Live;
         if (secondLive is null || secondLive.Version == firstLive.Version)
         {
             _kpiLogger.MarkE2E(success: false);
             _renderModule.Print("validate failed: second deploy did not advance version");
-            return;
+            return false;
         }
 
         _renderModule.Print("validate: step 5/5 rollback to v1");
-        Rollback();
+        if (!Rollback())
+        {
+            _kpiLogger.MarkE2E(success: false);
+            _renderModule.Print("validate failed: rollback failed");
+            return false;
+        }
 
         var afterRollback = _stateModule.Snapshot().Live;
         var rollbackOk = afterRollback is not null && afterRollback.Version == firstLive.Version;
@@ -148,10 +178,86 @@ public sealed class ActionExecutor
         {
             _kpiLogger.MarkE2E(success: false);
             _renderModule.Print("validate failed: rollback did not restore previous live");
-            return;
+            return false;
         }
 
         _kpiLogger.MarkE2E(success: true);
         _renderModule.Print("validate success: generate/update/deploy/rollback scenario passed");
+        return true;
+    }
+
+    public bool RunScn01()
+    {
+        _renderModule.Print("scn01: step 1/5 generate");
+        if (!Generate("scn01-base"))
+        {
+            _kpiLogger.MarkE2E(success: false);
+            _renderModule.Print("scn01 failed: generate failed");
+            _renderModule.Print($"SCN01_KPI_JSON={_kpiLogger.RenderCompactJson()}");
+            return false;
+        }
+
+        _renderModule.Print("scn01: step 2/5 deploy baseline v1");
+        if (!Deploy())
+        {
+            _kpiLogger.MarkE2E(success: false);
+            _renderModule.Print("scn01 failed: first deploy failed");
+            _renderModule.Print($"SCN01_KPI_JSON={_kpiLogger.RenderCompactJson()}");
+            return false;
+        }
+
+        var firstLive = _stateModule.Snapshot().Live;
+        if (firstLive is null)
+        {
+            _kpiLogger.MarkE2E(success: false);
+            _renderModule.Print("scn01 failed: first deploy missing live");
+            _renderModule.Print($"SCN01_KPI_JSON={_kpiLogger.RenderCompactJson()}");
+            return false;
+        }
+
+        _renderModule.Print("scn01: step 3/5 update draft");
+        if (!Update("scn01-partial-update"))
+        {
+            _kpiLogger.MarkE2E(success: false);
+            _renderModule.Print("scn01 failed: update failed");
+            _renderModule.Print($"SCN01_KPI_JSON={_kpiLogger.RenderCompactJson()}");
+            return false;
+        }
+
+        _renderModule.Print("scn01: step 4/5 deploy updated v2");
+        if (!Deploy())
+        {
+            _kpiLogger.MarkE2E(success: false);
+            _renderModule.Print("scn01 failed: second deploy failed");
+            _renderModule.Print($"SCN01_KPI_JSON={_kpiLogger.RenderCompactJson()}");
+            return false;
+        }
+
+        var secondLive = _stateModule.Snapshot().Live;
+        if (secondLive is null || secondLive.Version == firstLive.Version)
+        {
+            _kpiLogger.MarkE2E(success: false);
+            _renderModule.Print("scn01 failed: second deploy did not advance version");
+            _renderModule.Print($"SCN01_KPI_JSON={_kpiLogger.RenderCompactJson()}");
+            return false;
+        }
+
+        _renderModule.Print("scn01: step 5/5 rollback to v1");
+        if (!Rollback())
+        {
+            _kpiLogger.MarkE2E(success: false);
+            _renderModule.Print("scn01 failed: rollback failed");
+            _renderModule.Print($"SCN01_KPI_JSON={_kpiLogger.RenderCompactJson()}");
+            return false;
+        }
+
+        var afterRollback = _stateModule.Snapshot().Live;
+        var rollbackOk = afterRollback is not null && afterRollback.Version == firstLive.Version;
+        _kpiLogger.MarkE2E(rollbackOk);
+        _renderModule.Print(rollbackOk
+            ? "scn01 success: generate/update/deploy/rollback scenario passed"
+            : "scn01 failed: rollback did not restore previous live");
+        _renderModule.Print($"SCN01_KPI_JSON={_kpiLogger.RenderCompactJson()}");
+        return rollbackOk;
     }
 }

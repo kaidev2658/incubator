@@ -13,6 +13,22 @@ var executor = new ActionExecutor(
     new MockSyncClient(),
     new KpiLogger());
 
+if (args.Length > 0)
+{
+    var startupCommand = args[0].ToLowerInvariant();
+    switch (startupCommand)
+    {
+        case "run-scn01":
+            var scn01Passed = executor.RunScn01();
+            Environment.ExitCode = scn01Passed ? 0 : 1;
+            return;
+        default:
+            renderer.Print($"unknown startup command: {args[0]}");
+            Environment.ExitCode = 2;
+            return;
+    }
+}
+
 renderer.Header();
 
 while (true)

@@ -62,6 +62,11 @@ public sealed class KpiLogger
         return JsonSerializer.Serialize(Snapshot(), new JsonSerializerOptions { WriteIndented = true });
     }
 
+    public string RenderCompactJson()
+    {
+        return JsonSerializer.Serialize(Snapshot());
+    }
+
     private static double Ratio(int successes, int attempts)
     {
         if (attempts == 0)

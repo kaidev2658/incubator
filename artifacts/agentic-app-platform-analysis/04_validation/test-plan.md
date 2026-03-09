@@ -1,42 +1,53 @@
-# Test Plan (PoC v1)
+# Test Plan (PoC v2: SCN-01)
 
-## 1) 목표
-Tizen용 Agentic mini-app PoC의 기능/안정성/권한 경계를 빠르게 검증한다.
+## 1) Goal
+`03_poc` 런타임에서 SCN-01(Generate -> Update -> Deploy -> Rollback) E2E를 비대화형으로 실행하고 결과를 정량 검증한다.
 
-## 2) 성공 지표 (KPI)
-- E2E 성공률: 85% 이상
-- 평균 생성+배포 시간: 10초 이내(데모 환경)
-- 복구 성공률(롤백): 100%
-- 권한 오류 시 안전 실패(fail-safe): 100%
+## 2) Test Command
+```bash
+cd artifacts/agentic-app-platform-analysis/03_poc
+./scripts/run-scn01.sh
+```
 
-## 3) 테스트 범주
-1. 기능 테스트
-   - Prompt -> Draft 생성
-   - Partial update 반영
-   - Rollback 동작
-   - 홈 배포/갱신
-2. 실패/복구 테스트
-   - 네트워크 장애
-   - 권한 거부
-   - 입력 스키마 오류
-3. 보안/권한 테스트
-   - 허용 권한 외 접근 차단
-   - 사용자 승인 없는 민감 액션 차단
+## 3) Required Pass Conditions
+아래 항목이 모두 참이면 PASS, 하나라도 실패하면 FAIL.
 
-## 4) 대표 E2E 시나리오
-### TC-E2E-01
-- 입력: "내일 일정+이동 알림 위젯 만들어줘"
-- 기대: draft 생성 -> 승인 -> 홈 배포 -> 일정 반영
+1. Exit code
+   - `run-scn01.sh` 종료 코드가 `0` 이어야 한다.
+2. Runtime step logs
+   - `scn01: step 1/5 generate`
+   - `scn01: step 2/5 deploy baseline v1`
+   - `scn01: step 3/5 update draft`
+   - `scn01: step 4/5 deploy updated v2`
+   - `scn01: step 5/5 rollback to v1`
+   - `scn01 success: generate/update/deploy/rollback scenario passed`
+3. KPI JSON line exists
+   - 실행 로그에 `SCN01_KPI_JSON=` 접두 라인이 최소 1개 존재해야 한다.
+4. KPI JSON exact/threshold checks
+   - `generate_success == 1`
+   - `e2e_success == 1`
+   - `rollback_success == 1`
+   - `generate_attempts == 1`
+   - `e2e_attempts == 1`
+   - `deploy_count == 2`
+   - `rollback_attempts == 1`
+   - `deploy_latency_ms > 0`
 
-### TC-E2E-02
-- 입력: "주말엔 알림 끄고 평일 오전 8시만"
-- 기대: partial update만 적용, 기존 레이아웃 유지
+## 4) Fail Diagnostics
+FAIL 시 원인 분류:
 
-### TC-E2E-03
-- 실패 유도: 캘린더 권한 거부
-- 기대: 안내 메시지 + 안전 실패 + 재승인 유도
+1. Build failure
+   - `dotnet build` 실패 또는 경고/오류 확인 필요
+2. Scenario logic failure
+   - step 로그 누락, 버전 증가/롤백 검증 실패
+3. KPI emission failure
+   - `SCN01_KPI_JSON=` 미출력 또는 JSON 파싱 실패
+4. Environment failure
+   - `/usr/local/share/dotnet/dotnet --info` 실패
 
-## 5) 산출물
-- 테스트 실행 로그
-- 실패 케이스 기록(원인/해결)
-- KPI 결과표
+## 5) Artifacts
+`03_poc/eval/`에 아래 파일이 생성되어야 한다.
+
+1. `scn01-build-<timestamp>.log`
+2. `scn01-run-<timestamp>.log`
+3. `scn01-kpi-<timestamp>.json`
