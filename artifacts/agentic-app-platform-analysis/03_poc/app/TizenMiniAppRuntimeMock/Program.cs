@@ -6,7 +6,7 @@ var policy = ApiMetadataIndexLoader.LoadDefaultPolicyEvaluator();
 var service = new Scn01LifecycleService(
     new PromptEngine(),
     policy,
-    new MockSyncPublisher(),
+    new SyncClient(),
     new KpiTracker());
 
 var executor = new ActionExecutor(service, renderer);

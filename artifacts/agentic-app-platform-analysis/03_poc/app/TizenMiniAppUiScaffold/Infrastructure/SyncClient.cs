@@ -1,7 +1,7 @@
 using System.Net.Http.Json;
 using TizenMiniApp.Shared.Scn01;
 
-namespace TizenMiniAppRuntimeMock.Modules;
+namespace TizenMiniAppUiScaffold.Infrastructure;
 
 public sealed class SyncClient : ISyncPublisher
 {
