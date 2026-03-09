@@ -47,14 +47,14 @@ public sealed class KpiLogger
     public KpiSnapshot Snapshot()
     {
         return new KpiSnapshot(
-            GenerateSuccessRatePercent: Percentage(_generateSuccesses, _generateAttempts),
-            E2ESuccessRatePercent: Percentage(_e2eSuccesses, _e2eAttempts),
-            AverageDeployLatencyMs: _deployLatenciesMs.Count == 0 ? 0 : _deployLatenciesMs.Average(),
-            RollbackSuccessRatePercent: Percentage(_rollbackSuccesses, _rollbackAttempts),
-            GenerateAttempts: _generateAttempts,
-            E2EAttempts: _e2eAttempts,
-            DeployCount: _deployLatenciesMs.Count,
-            RollbackAttempts: _rollbackAttempts);
+            generate_success: Ratio(_generateSuccesses, _generateAttempts),
+            e2e_success: Ratio(_e2eSuccesses, _e2eAttempts),
+            deploy_latency_ms: _deployLatenciesMs.Count == 0 ? 0 : Math.Round(_deployLatenciesMs.Average(), 2),
+            rollback_success: Ratio(_rollbackSuccesses, _rollbackAttempts),
+            generate_attempts: _generateAttempts,
+            e2e_attempts: _e2eAttempts,
+            deploy_count: _deployLatenciesMs.Count,
+            rollback_attempts: _rollbackAttempts);
     }
 
     public string RenderJson()
@@ -62,23 +62,23 @@ public sealed class KpiLogger
         return JsonSerializer.Serialize(Snapshot(), new JsonSerializerOptions { WriteIndented = true });
     }
 
-    private static double Percentage(int successes, int attempts)
+    private static double Ratio(int successes, int attempts)
     {
         if (attempts == 0)
         {
             return 0;
         }
 
-        return Math.Round((double)successes / attempts * 100, 2);
+        return Math.Round((double)successes / attempts, 4);
     }
 }
 
 public sealed record KpiSnapshot(
-    double GenerateSuccessRatePercent,
-    double E2ESuccessRatePercent,
-    double AverageDeployLatencyMs,
-    double RollbackSuccessRatePercent,
-    int GenerateAttempts,
-    int E2EAttempts,
-    int DeployCount,
-    int RollbackAttempts);
+    double generate_success,
+    double e2e_success,
+    double deploy_latency_ms,
+    double rollback_success,
+    int generate_attempts,
+    int e2e_attempts,
+    int deploy_count,
+    int rollback_attempts);

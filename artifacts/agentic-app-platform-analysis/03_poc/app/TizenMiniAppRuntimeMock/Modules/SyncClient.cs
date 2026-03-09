@@ -16,3 +16,13 @@ public sealed class MockSyncClient : ISyncClient
         return new SyncPublishResult(true, "sync publish ok (mock)");
     }
 }
+
+// Skeleton for future real connector integration.
+public sealed class RemoteSyncClientSkeleton : ISyncClient
+{
+    public SyncPublishResult Publish(MiniApp app)
+    {
+        _ = app;
+        return new SyncPublishResult(false, "remote sync client not implemented");
+    }
+}
