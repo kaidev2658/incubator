@@ -1,33 +1,87 @@
-# Tooling & Runtime Options (for Tizen PoC)
+# Tooling & Runtime Options (Detailed)
 
-## 1) 목표
-PoC 속도와 안정성을 균형 있게 맞추는 실행 조합을 결정한다.
+## 1) PoC v1 선택 요약
+- Runtime model: **서버 중심 + Tizen 경량 실행기**
+- App model: **선언형 스키마(JSON/DSL)**
+- Packaging: **manifest + ui_schema + actions + state_policy**
+- Language (client): **.NET C#**
 
-## 2) 권장 기본안 (v1)
-- Orchestrator: 서버 측 Planner/Worker
-- Model access: 클라우드 API 우선
-- Client: Tizen 경량 렌더러/실행기
-- State store: 경량 DB (앱 메타/버전/권한 상태)
-- Policy gate: 권한 화이트리스트 + 승인 훅
+## 2) 런타임 옵션 비교 (기술요소 중심)
 
-## 3) 옵션 비교
-### A. 서버 중심 (권장)
-- 장점: 빠른 실험, 모델 교체 쉬움, 보안통제 용이
-- 단점: 네트워크 의존
+## A. 서버 중심 (채택)
+### 구조
+- 서버: 생성/검증/버전/정책
+- 클라이언트: 렌더/실행/상태 표시
 
-### B. 하이브리드
-- 장점: 일부 로컬 처리로 지연 감소
-- 단점: 구현 복잡도 증가
+### 장점
+- 생성모델 교체 쉬움
+- 보안/정책 중앙집중
+- PoC 속도 빠름
 
-### C. 온디바이스 중심
-- 장점: 프라이버시/오프라인 강점
-- 단점: 초기 PoC 속도 저하, 디바이스 편차 리스크
+### 단점
+- 네트워크 의존
+- 서버 장애 영향 큼
 
-## 4) v1 권한 정책
-- allow: location, calendar(read), contacts(read)
-- deny(phase-1): camera, microphone, bluetooth, calling
-- 모든 민감 호출: 사용자 승인 required
+## B. 하이브리드
+### 구조
+- 일부 파싱/규칙검증 로컬 수행
+- 생성/무거운 추론은 서버
 
-## 5) 의사결정 권고
-- v1은 A(서버 중심)로 진행
-- v2에서 하이브리드 전환 여부를 KPI 기준으로 결정
+### 장점
+- 반응성 개선 가능
+- 일부 오프라인 완화
+
+### 단점
+- 동기화/버전충돌 복잡
+- 구현 복잡도 증가
+
+## C. 온디바이스 중심
+### 구조
+- 생성/검증/실행 상당 부분 로컬
+
+### 장점
+- 프라이버시/오프라인 강점
+
+### 단점
+- 성능/메모리 제약
+- 디바이스 편차 대응 비용 큼
+- v1 일정에 부적합
+
+## 3) 패키징 스펙 초안 (v1)
+```json
+{
+  "manifest": {
+    "appId": "miniapp-uuid",
+    "version": "1.0.0",
+    "permissions": ["location", "calendar.read", "contacts.read"],
+    "runtime": "tizen10"
+  },
+  "ui_schema": {"layout": "4x2", "components": []},
+  "actions": [],
+  "state_policy": {"cache": "session", "sync": "server"}
+}
+```
+
+## 4) 정책 엔진 규칙 (v1)
+- allow: location, calendar.read, contacts.read
+- deny: camera, microphone, bluetooth, calling
+- 정책 위반 action은 배포 전 차단
+- 민감 동작은 승인훅(required)
+
+## 5) 관측성 최소 세트
+- `generate.success_rate`
+- `e2e.success_rate`
+- `deploy.latency_ms`
+- `rollback.success_rate`
+- `policy.block.count`
+
+## 6) Go/No-Go 기준 연동
+- 생성 성공률 >= 80%
+- E2E 성공률 >= 70%
+- 생성+배포 평균 <= 12s
+- rollback 성공률 100%
+
+## 7) v2 확장 후보
+- 하이브리드 로컬 검증기
+- camera/microphone/bluetooth 단계적 오픈
+- schema migration 자동화
