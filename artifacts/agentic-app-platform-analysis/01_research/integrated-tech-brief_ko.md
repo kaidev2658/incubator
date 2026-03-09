@@ -2,63 +2,86 @@
 
 ## 0) 목적
 - Wabi와 Nothing Essential Apps를 기준점으로,
-- Tizen용 Agentic mini/micro-app 플랫폼 PoC 방향을 확정하기 위한 통합 분석.
+- Tizen 10용 Agentic mini/micro-app 플랫폼 PoC 방향을 기술적으로 구체화.
 
 ## 1) Executive Summary
-1. **Wabi**는 자연어 기반 미니앱 생성/리믹스 플랫폼의 전형적 레퍼런스다.
-2. **Nothing Essential Apps**는 홈스크린 중심의 배포/실행 UX와 점진적 권한개방 전략이 강점이다.
-3. Tizen PoC는 두 접근을 합쳐 **생성(Builder) + 안전한 실행(권한 화이트리스트) + 빠른 배포(홈 위젯형)** 으로 설계하는 것이 최단 경로다.
+1. **Wabi**는 자연어 기반 생성 + 리믹스 네트워크 관점에서 강력한 레퍼런스.
+2. **Essential Apps**는 partial update/rollback, 권한 단계개방, 홈스크린 실행 UX가 강점.
+3. Tizen PoC 핵심은 **선언형 앱모델 + 경량 런타임 + 서버 오케스트레이션** 조합.
 
-## 2) 비교 관점 요약
-### 2.1 제품 철학
-- Wabi: "personal software"와 생성/리믹스 네트워크
-- Nothing Essential Apps: "home-first personal tools" + 실사용 안정화(Beta 운영)
+## 2) 기술 스택 관점 비교
+### 2.1 생성 계층 (Builder/LLM)
+- 공통: 자연어 -> 앱 초안 생성
+- 핵심 난제: 자유질의를 실행 가능한 구조로 안정 변환(스키마 검증 필수)
 
-### 2.2 빌더/업데이트 방식
-- Wabi: 자연어 생성 중심(세부 구현 공개 제한)
-- Nothing: 변경 시 전체 리셋 대신 부분 업데이트 + 롤백 강조
+### 2.2 실행 계층 (Runtime)
+- 공통 요구:
+  - 상태 관리(state)
+  - 권한 브로커(permission broker)
+  - 이벤트 처리(타이머/알림)
+  - 버전 관리(partial update + rollback)
 
-### 2.3 권한/플랫폼 전략
-- Wabi: 통합 데이터 범위 넓음(정책상)
-- Nothing: 초기 3권한(Location/Calendar read-only/Contacts)부터 시작해 단계적 확장
+### 2.3 배포 계층 (Packaging/Deploy)
+- 공통 요구:
+  - manifest 기반 권한/버전 관리
+  - live/draft 상태 구분
+  - one-tap 또는 quick publish 흐름
 
-## 3) Tizen PoC 설계 권고
-### 3.1 v1 아키텍처
-- Planner/Worker(서버)
-- Tool Gateway(권한/정책 게이트)
-- Tizen Client(경량 렌더러/실행기)
-- State Store(앱 메타/버전/권한 상태)
+## 3) 미니앱/마이크로앱 플랫폼 필수 요소
+1. **App Model(선언형)**
+   - `manifest`, `ui_schema`, `actions`, `state_policy`
+2. **Runtime Sandbox**
+   - 허용 API 화이트리스트
+   - 민감 권한 승인 훅
+3. **Versioning**
+   - partial update
+   - rollback
+   - schema migration
+4. **Observability**
+   - 생성 성공률, 배포 성공률, 오류코드, 복구이력
 
-### 3.2 v1 기능 스코프
-- Prompt -> mini-app draft 생성
-- Partial update (요청 부위만 수정)
-- Version rollback (N-1 복구)
-- 홈 위젯형 배포
+## 4) 기술 장벽 (공통)
+1. 생성 안정성(환각/구조 불일치)
+2. 권한/보안 경계
+3. 디바이스·OS 파편화 대응
+4. 버전 호환성/복구 보장
+5. 운영비용(추론/검증/배포)
 
-### 3.3 초기 권한 정책
-- 허용: 위치, 캘린더 읽기, 연락처 읽기
-- 보류: 카메라/마이크/블루투스/콜링
-- 원칙: 최소권한 + 사용자 승인 + 감사로그
+## 5) Tizen 10 PoC 권고 아키텍처
+### 5.1 v1 구조
+- Server: Planner/Worker + Tool Gateway + Policy Engine
+- Client(Tizen): 경량 렌더러 + 실행기 + 상태 캐시
+- Storage: app metadata/version state
 
-## 4) 검증 시나리오 (E2E)
-1. 사용자: "내일 일정 + 이동 알림 위젯 만들어줘"
-2. 생성: 입력/출력/알림 로직 포함 draft 생성
-3. 수정: "주말엔 숨겨줘" 같은 규칙 수정(부분 업데이트)
-4. 배포: 홈에 배치 후 실시간 반영
-5. 실패 테스트: 권한 거부/네트워크 실패/데이터 누락
+### 5.2 앱 모델 v1 (권고)
+```json
+{
+  "manifest": {"appId":"...","version":"1.0.0","permissions":["location","calendar.read","contacts.read"]},
+  "ui_schema": {...},
+  "actions": [...],
+  "state_policy": {"cache":"session","sync":"server"}
+}
+```
 
-## 5) 리스크 및 대응
-- 생성오류/환각 -> 템플릿 가드 + 스키마 검증
-- 권한 남용 -> 화이트리스트 + 사용자 승인 단계
-- 운영 불안정 -> 버전 롤백 + 장애 텔레메트리
-- 개인정보 우려 -> 데이터 최소수집 + 보관기간 명시 + 삭제 API
+### 5.3 배포/수정 정책
+- 생성 결과는 `draft`
+- 사용자 승인 후 `live`
+- 수정은 diff 적용
+- 실패 시 즉시 이전 `live`로 rollback
 
-## 6) 다음 액션 (우선순위)
-1. `02_architecture/tooling-runtime-options.md` 작성
-2. `03_poc/app`에 v1 런타임 뼈대 생성
-3. `04_validation/test-plan.md`에서 성공/실패 지표 확정
+## 6) PoC 성공 기준 (합의 반영)
+- 생성 성공률 >= 80%
+- E2E 성공률 >= 70%
+- 평균 생성+배포 <= 12초 (PoC 환경)
+- Rollback 성공률 100%
 
-## 7) Source Pointers
+## 7) 다음 액션 (실행 순서)
+1. `app model schema` 초안 고정 (`03_poc/agent-core/schema`)
+2. Tizen C# 런타임 뼈대 구현 (`03_poc/app`)
+3. `generate/update/deploy/rollback` API 계약 정의
+4. `04_validation`에 실패 케이스와 KPI 측정 자동화
+
+## 8) Source Pointers
 ### Wabi
 - https://wabi.ai/
 - https://wabi.ai/terms
