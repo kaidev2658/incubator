@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://incubator.local/schemas/app-definition.schema.json",
+  "title": "MiniAppDefinition",
+  "type": "object",
+  "required": ["appId", "name", "version", "status", "manifest", "ui_schema", "actions", "state_policy"],
+  "properties": {
+    "appId": { "type": "string", "minLength": 1 },
+    "name": { "type": "string", "minLength": 1 },
+    "version": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$" },
+    "status": { "type": "string", "enum": ["draft", "live", "previous_live"] },
+    "manifest": {
+      "type": "object",
+      "required": ["permissions", "minRuntime"],
+      "properties": {
+        "permissions": {
+          "type": "array",
+          "items": { "type": "string", "enum": ["location", "calendar.read", "contacts.read"] },
+          "uniqueItems": true
+        },
+        "minRuntime": { "type": "string", "const": "tizen10" }
+      }
+    },
+    "ui_schema": {
+      "type": "object",
+      "required": ["layout", "components"],
+      "properties": {
+        "layout": { "type": "string", "enum": ["2x2", "4x2"] },
+        "components": { "type": "array", "items": { "type": "object" } }
+      }
+    },
+    "actions": { "type": "array", "items": { "type": "object" } },
+    "state_policy": {
+      "type": "object",
+      "required": ["cache", "sync"],
+      "properties": {
+        "cache": { "type": "string", "enum": ["session"] },
+        "sync": { "type": "string", "enum": ["server"] }
+      }
+    }
+  }
+}
