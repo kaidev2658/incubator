@@ -12,7 +12,7 @@
 
 ## In Scope
 - 기술 조사(아키텍처/런타임/보안/비용)
-- 레퍼런스 분석(Wabi, Nothing Essential Space UX 패턴)
+- 레퍼런스 분석(Wabi, Nothing Essential Apps UX 패턴)
 - Tizen 대상 빠른 PoC
 
 ## Out of Scope (현재)
