@@ -6,7 +6,7 @@
 
 ## 1) Executive Summary
 1. **Wabi**는 자연어 기반 생성 + 리믹스 네트워크 관점에서 강력한 레퍼런스.
-2. **Essential Apps**는 partial update/rollback, 권한 단계개방, 홈스크린 실행 UX가 강점.
+2. **Essential Apps**는 앱 생성(프롬프트 기반)→draft/live 배포→partial update/rollback의 운영모델이 강점.
 3. Tizen PoC 핵심은 **선언형 앱모델 + 경량 런타임 + 서버 오케스트레이션** 조합.
 
 ## 2) 기술 스택 관점 비교
@@ -26,6 +26,14 @@
   - manifest 기반 권한/버전 관리
   - live/draft 상태 구분
   - one-tap 또는 quick publish 흐름
+
+### 2.4 Essential Apps 모델 상세 (Nothing Playground 기준)
+- 앱 모델: 홈스크린 중심의 마이크로앱(위젯형 UX에 가까운 경량 앱 경험)
+- 생성 방식: 자연어 프롬프트 기반 초안 생성 후 draft 상태에서 반복 수정
+- 배포 방식: Playground에서 live 반영, 변경은 partial update 우선
+- 구동 방식: 허용된 capability 범위 내 실행 + 정책 기반 권한 단계 개방
+- 복구 방식: 문제 시 이전 live 상태로 rollback
+- 언어/구현 관점: 런타임 구현 언어와 별도로, 생성 산출물은 JSON/DSL 같은 선언형 중립 포맷 유지가 유리
 
 ## 2.5) Wabi 실행 흐름 단서(비공식)
 - Prompt 입력 -> RN 코드 생성 -> 플랫폼 내 빌드/실행
@@ -103,5 +111,6 @@
 - https://nothing.community/en/d/52739-essential-apps-enters-beta
 - https://playground.nothing.tech/apps
 - https://www.youtube.com/watch?v=lgMkWKLbmbM
+- https://developer.android.com/develop/ui/views/appwidgets/overview
 - https://nothing.tech/pages/privacy-policy
 - https://kr.nothing.tech/pages/privacy-policy
