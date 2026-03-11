@@ -7,7 +7,8 @@
 ## 1) Executive Summary
 1. **Wabi**는 자연어 기반 생성 + 리믹스 네트워크 관점에서 강력한 레퍼런스.
 2. **Essential Apps**는 앱 생성(프롬프트 기반)→draft/live 배포→partial update/rollback의 운영모델이 강점.
-3. Tizen PoC 핵심은 **선언형 앱모델 + 경량 런타임 + 서버 오케스트레이션** 조합.
+3. **Apps in Toss**는 SDK/API/콘솔/검수/출시/롤백이 결합된 상용 미니앱 운영모델이 강점.
+4. Tizen PoC 핵심은 **선언형 앱모델 + 경량 런타임 + 서버 오케스트레이션** 조합.
 
 ## 2) 기술 스택 관점 비교
 ### 2.1 생성 계층 (Builder/LLM)
@@ -115,3 +116,13 @@
 - https://developer.android.com/develop/ui/views/appwidgets/overview
 - https://nothing.tech/pages/privacy-policy
 - https://kr.nothing.tech/pages/privacy-policy
+
+### Apps in Toss
+- https://toss.im/apps-in-toss
+- https://developers-apps-in-toss.toss.im
+- https://github.com/toss/apps-in-toss-examples
+- https://developers-apps-in-toss.toss.im/intro/overview.md
+- https://developers-apps-in-toss.toss.im/tutorials/webview.md
+- https://developers-apps-in-toss.toss.im/tutorials/react-native.md
+- https://developers-apps-in-toss.toss.im/development/integration-process.md
+- https://developers-apps-in-toss.toss.im/development/deploy.md
