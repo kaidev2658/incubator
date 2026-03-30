@@ -19,15 +19,35 @@
 
 ## Benchmarks explicitly considered in this topic
 - SWE-bench family
+  - https://www.swebench.com/
+  - https://github.com/SWE-bench/SWE-bench
 - Terminal-bench
+  - https://www.tbench.ai/
+  - https://github.com/laude-institute/terminal-bench
 - BFCL (Berkeley Function Calling Leaderboard)
+  - https://gorilla.cs.berkeley.edu/leaderboard.html
+  - https://github.com/ShishirPatil/gorilla/tree/main/berkeley-function-call-leaderboard
 - ToolBench
+  - https://github.com/OpenBMB/ToolBench
+  - https://huggingface.co/datasets/Maurus/ToolBench
 - τ-bench
+  - https://github.com/sierra-research/tau-bench
+  - https://arxiv.org/abs/2406.12045
 - AgentBench
+  - https://github.com/THUDM/AgentBench
+  - https://arxiv.org/abs/2308.03688
 - GAIA
+  - https://huggingface.co/gaia-benchmark
+  - https://arxiv.org/abs/2311.12983
 - WebArena
+  - https://webarena.dev/
+  - https://arxiv.org/abs/2307.13854
 - BrowserGym
+  - https://browsergym.readthedocs.io/
+  - https://github.com/ServiceNow/BrowserGym
 - MCP-oriented benchmarks such as LiveMCPBench and MCP-Universe
+  - https://icip-cas.github.io/LiveMCPBench
+  - https://github.com/SalesforceAIResearch/MCP-Universe
 
 ## Notes
 - This topic home is intended as a practical evaluation framing document, not a leaderboard mirror.
