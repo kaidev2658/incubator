@@ -20,3 +20,5 @@ This topic covers:
 - [evaluation-criteria.md](evaluation-criteria.md): practical criteria for evaluating agent runtimes beyond raw model performance
 - [recommendations.md](recommendations.md): recommended benchmark portfolio and adoption path for OpenClaw-like systems
 - [openclaw-benchmark-cases.md](openclaw-benchmark-cases.md): benchmark cases and benchmark-like evaluation setups directly relevant to OpenClaw or OpenClaw-style systems
+- [internal-benchmark-spec.md](internal-benchmark-spec.md): internal benchmark design for comparing OpenClaw-like runtimes on realistic workflows
+- [scorecard-template.md](scorecard-template.md): reusable evaluation scorecard for runtime comparison runs
