@@ -18,6 +18,9 @@ Each subdirectory under this path should represent an independent work unit with
 ### `a2ui-analysis/`
 Research and implementation material related to A2UI analysis and renderer/test work.
 
+### `agent-runtime-benchmarking/`
+Research and planning material for evaluating agent runtimes, benchmark selection, and practical performance criteria when model quality alone is not enough.
+
 ### `agentic-app-platform-analysis/`
 Research material focused on agentic application platform analysis.
 
