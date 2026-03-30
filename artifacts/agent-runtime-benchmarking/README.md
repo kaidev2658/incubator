@@ -19,3 +19,4 @@ This topic covers:
 - [benchmark-landscape.md](benchmark-landscape.md): major benchmark categories, what they measure, and where they fit
 - [evaluation-criteria.md](evaluation-criteria.md): practical criteria for evaluating agent runtimes beyond raw model performance
 - [recommendations.md](recommendations.md): recommended benchmark portfolio and adoption path for OpenClaw-like systems
+- [openclaw-benchmark-cases.md](openclaw-benchmark-cases.md): benchmark cases and benchmark-like evaluation setups directly relevant to OpenClaw or OpenClaw-style systems

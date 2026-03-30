@@ -7,6 +7,16 @@
   - https://www.swebench.com/
 - OpenClaw local documentation and prior operational context from the workspace for runtime, orchestration, and artifact-production requirements.
 
+## OpenClaw-relevant benchmark case references
+- `agentbench-openclaw` repository mention observed in search results as an OpenClaw-oriented benchmark case.
+  - https://github.com/agentbench/agentbench-openclaw
+- PinchBench as an OpenClaw-oriented benchmark service reference observed in search results.
+  - https://pinchbench.com/
+- OpenClaw + PinchBench explainer observed in search results.
+  - https://help.apiyi.com/en/openclaw-pinchbench-ai-agent-benchmark-guide-en.html
+- AgentBench skill packaging references for OpenClaw observed in search results.
+  - https://lobehub.com/skills/openclaw-skills-agentbench
+
 ## Benchmarks explicitly considered in this topic
 - SWE-bench family
 - Terminal-bench
