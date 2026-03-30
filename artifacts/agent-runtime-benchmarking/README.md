@@ -22,3 +22,4 @@ This topic covers:
 - [openclaw-benchmark-cases.md](openclaw-benchmark-cases.md): benchmark cases and benchmark-like evaluation setups directly relevant to OpenClaw or OpenClaw-style systems
 - [internal-benchmark-spec.md](internal-benchmark-spec.md): internal benchmark design for comparing OpenClaw-like runtimes on realistic workflows
 - [scorecard-template.md](scorecard-template.md): reusable evaluation scorecard for runtime comparison runs
+- [benchmark-suite-v0.md](benchmark-suite-v0.md): first compact experiment design for runtime comparison under a fixed-model setup
