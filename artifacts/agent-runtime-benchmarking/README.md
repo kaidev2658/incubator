@@ -23,3 +23,5 @@ This topic covers:
 - [internal-benchmark-spec.md](internal-benchmark-spec.md): internal benchmark design for comparing OpenClaw-like runtimes on realistic workflows
 - [scorecard-template.md](scorecard-template.md): reusable evaluation scorecard for runtime comparison runs
 - [benchmark-suite-v0.md](benchmark-suite-v0.md): first compact experiment design for runtime comparison under a fixed-model setup
+- [task-catalog.md](task-catalog.md): initial 12-task catalog for the evaluation suite
+- [task-specs/](task-specs/): per-task specifications for the pilot benchmark slice
