@@ -25,3 +25,4 @@ This topic covers:
 - [benchmark-suite-v0.md](benchmark-suite-v0.md): first compact experiment design for runtime comparison under a fixed-model setup
 - [task-catalog.md](task-catalog.md): initial 12-task catalog for the evaluation suite
 - [task-specs/](task-specs/): per-task specifications for the pilot benchmark slice
+- [comparative-summary-template.md](comparative-summary-template.md): template for comparing two runtime conditions after a pilot run
