@@ -4,6 +4,7 @@ This topic home summarizes technologies announced at The Android Show: I/O Editi
 
 ## Documents
 
+- [a2ui-relationship.ko.md](a2ui-relationship.ko.md): Korean analysis of how the Android Show announcements relate to A2UI.
 - [README.ko.md](README.ko.md): Korean overview for this topic home.
 - [index.html](index.html): browser-readable HTML version of the research brief.
 - [index.ko.html](index.ko.html): Korean HTML version of the research brief.
