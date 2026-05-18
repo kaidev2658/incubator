@@ -1,0 +1,528 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>The Android Show: I/O Edition 2026 - Technical Brief</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f7f8f4;
+      --ink: #17211b;
+      --muted: #5b665e;
+      --line: #d8ded5;
+      --panel: #ffffff;
+      --green: #1f7a4d;
+      --blue: #255f9e;
+      --amber: #a75f00;
+      --violet: #6b4ea0;
+      --soft-green: #e8f4ed;
+      --soft-blue: #e8f0fa;
+      --soft-amber: #fff2df;
+      --soft-violet: #f0ebf7;
+      --shadow: 0 14px 38px rgba(23, 33, 27, 0.08);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.6;
+    }
+
+    a {
+      color: var(--blue);
+      text-decoration: none;
+    }
+
+    a:hover {
+      text-decoration: underline;
+    }
+
+    .page {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 32px 22px 64px;
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: minmax(0, 1.6fr) minmax(280px, 0.8fr);
+      gap: 28px;
+      align-items: stretch;
+      margin-bottom: 26px;
+    }
+
+    .hero-main {
+      padding: 34px;
+      background: linear-gradient(135deg, #ffffff 0%, #eef7f0 58%, #e7f0fb 100%);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+    }
+
+    .eyebrow {
+      margin: 0 0 12px;
+      color: var(--green);
+      font-size: 13px;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      margin: 0 0 18px;
+      font-size: clamp(34px, 5vw, 64px);
+      line-height: 1.03;
+      letter-spacing: 0;
+      max-width: 920px;
+    }
+
+    .subtitle {
+      margin: 0;
+      max-width: 800px;
+      color: #324038;
+      font-size: 19px;
+      line-height: 1.55;
+    }
+
+    .hero-side {
+      display: grid;
+      gap: 14px;
+    }
+
+    .metric {
+      min-height: 118px;
+      padding: 20px;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: 0 8px 24px rgba(23, 33, 27, 0.05);
+    }
+
+    .metric strong {
+      display: block;
+      margin-bottom: 6px;
+      color: var(--ink);
+      font-size: 24px;
+      line-height: 1.2;
+    }
+
+    .metric span {
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .nav {
+      position: sticky;
+      top: 0;
+      z-index: 2;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      padding: 12px 0 18px;
+      background: rgba(247, 248, 244, 0.94);
+      backdrop-filter: blur(10px);
+    }
+
+    .nav a {
+      display: inline-flex;
+      align-items: center;
+      min-height: 36px;
+      padding: 7px 12px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: #fff;
+      color: #26342c;
+      font-size: 14px;
+      font-weight: 650;
+    }
+
+    section {
+      margin-top: 26px;
+      padding: 28px;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: 0 10px 30px rgba(23, 33, 27, 0.05);
+    }
+
+    h2 {
+      margin: 0 0 16px;
+      font-size: 30px;
+      line-height: 1.2;
+      letter-spacing: 0;
+    }
+
+    h3 {
+      margin: 24px 0 10px;
+      font-size: 20px;
+      line-height: 1.25;
+      letter-spacing: 0;
+    }
+
+    p {
+      margin: 0 0 14px;
+    }
+
+    ul, ol {
+      margin: 0 0 16px 22px;
+      padding: 0;
+    }
+
+    li + li {
+      margin-top: 7px;
+    }
+
+    .lead {
+      color: #344239;
+      font-size: 18px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+      margin-top: 18px;
+    }
+
+    .cards-3 {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .card {
+      padding: 18px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fbfcfa;
+    }
+
+    .card h3 {
+      margin-top: 0;
+    }
+
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      min-height: 28px;
+      margin-bottom: 10px;
+      padding: 4px 9px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 800;
+      text-transform: uppercase;
+    }
+
+    .green { background: var(--soft-green); color: var(--green); }
+    .blue { background: var(--soft-blue); color: var(--blue); }
+    .amber { background: var(--soft-amber); color: var(--amber); }
+    .violet { background: var(--soft-violet); color: var(--violet); }
+
+    .callout {
+      margin: 18px 0;
+      padding: 18px 20px;
+      border-left: 4px solid var(--green);
+      background: var(--soft-green);
+      border-radius: 0 8px 8px 0;
+    }
+
+    .matrix {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 16px 0;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      font-size: 14px;
+    }
+
+    .matrix th,
+    .matrix td {
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+      vertical-align: top;
+    }
+
+    .matrix th {
+      background: #eef2ec;
+      font-weight: 800;
+    }
+
+    .matrix tr:last-child td {
+      border-bottom: 0;
+    }
+
+    .source-list a {
+      word-break: break-word;
+    }
+
+    .footer {
+      margin-top: 28px;
+      color: var(--muted);
+      font-size: 13px;
+      text-align: center;
+    }
+
+    @media (max-width: 860px) {
+      .hero,
+      .grid,
+      .cards-3 {
+        grid-template-columns: 1fr;
+      }
+
+      .hero-main,
+      section {
+        padding: 22px;
+      }
+
+      h1 {
+        font-size: 38px;
+      }
+
+      .nav {
+        position: static;
+      }
+
+      .matrix {
+        display: block;
+        overflow-x: auto;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <header class="hero">
+      <div class="hero-main">
+        <p class="eyebrow">The Android Show: I/O Edition 2026</p>
+        <h1>Android shifts from app launcher to intelligence system</h1>
+        <p class="subtitle">A technical brief on Gemini Intelligence, generative UI, Android 17, Android Auto, Googlebook, and the developer implications of OS-level AI automation.</p>
+      </div>
+      <aside class="hero-side" aria-label="Key points">
+        <div class="metric">
+          <strong>Gemini Intelligence</strong>
+          <span>Google's umbrella layer for proactive, context-aware Android assistance.</span>
+        </div>
+        <div class="metric">
+          <strong>Generative UI</strong>
+          <span>Create My Widget turns natural language goals into persistent Android and Wear OS surfaces.</span>
+        </div>
+        <div class="metric">
+          <strong>Android 17</strong>
+          <span>Creator tools, sharing, migration, wellbeing, emoji, and stronger security controls.</span>
+        </div>
+      </aside>
+    </header>
+
+    <nav class="nav" aria-label="Document navigation">
+      <a href="#summary">Summary</a>
+      <a href="#gemini">Gemini Intelligence</a>
+      <a href="#generative-ui">Generative UI</a>
+      <a href="#android17">Android 17</a>
+      <a href="#auto-googlebook">Auto and Googlebook</a>
+      <a href="#developer">Developer Impact</a>
+      <a href="#risks">Risks</a>
+      <a href="#sources">Sources</a>
+    </nav>
+
+    <section id="summary">
+      <h2>Executive Summary</h2>
+      <p class="lead">The Android Show: I/O Edition 2026 framed Android's next phase as a shift from an operating system to an intelligence system. The central product idea is Gemini Intelligence: a device-level AI layer that can understand screen and image context, automate multi-step tasks across apps, improve Chrome browsing and Autofill, clean up speech-to-text through Gboard Rambler, and generate personalized UI surfaces such as widgets.</p>
+      <div class="grid cards-3">
+        <article class="card">
+          <span class="tag green">AI Layer</span>
+          <h3>Intent to action</h3>
+          <p>Gemini is positioned as an OS-level action broker that can read context, plan workflows, operate apps, and stop for user confirmation.</p>
+        </article>
+        <article class="card">
+          <span class="tag blue">Platform</span>
+          <h3>Android 17 support</h3>
+          <p>Creator features, safer sharing, iOS migration, Digital Wellbeing, and security updates support a more automated Android environment.</p>
+        </article>
+        <article class="card">
+          <span class="tag violet">Surfaces</span>
+          <h3>Beyond phones</h3>
+          <p>Gemini Intelligence is planned across phones, watches, cars, glasses, and Googlebook laptops.</p>
+        </article>
+      </div>
+      <div class="callout">
+        <strong>Bottom line:</strong> this was less about one Android release and more about Android's new control plane. Gemini Intelligence is the layer that reads context, fills forms, controls apps, rewrites input, and generates UI.
+      </div>
+    </section>
+
+    <section id="gemini">
+      <h2>Gemini Intelligence</h2>
+      <p>Gemini Intelligence is Google's umbrella term for the most advanced AI features on supported Android devices. Google's framing is that Android is transitioning from an operating system into an intelligence system. The first rollout wave starts with recent Samsung Galaxy and Google Pixel phones in summer 2026, then expands across watches, cars, glasses, and laptops later in the year.</p>
+      <h3>Core capabilities</h3>
+      <ul>
+        <li>Multi-step app automation after an explicit user command.</li>
+        <li>Screen and image context that can be turned into action.</li>
+        <li>Background progress tracking through notifications or app state.</li>
+        <li>Final user confirmation for consequential steps such as checkout.</li>
+        <li>Opt-in controls where sensitive data connections are involved.</li>
+      </ul>
+      <h3>Example workflows</h3>
+      <ul>
+        <li>Build a shopping cart from a grocery list visible in a notes app.</li>
+        <li>Find a tour similar to a photographed travel brochure for a group.</li>
+        <li>Find a class syllabus in Gmail and add required books to a cart.</li>
+        <li>Book appointments or reserve parking through Chrome auto browse.</li>
+      </ul>
+      <table class="matrix">
+        <thead>
+          <tr>
+            <th>Feature</th>
+            <th>Role</th>
+            <th>Why it matters</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Gemini in Chrome</td>
+            <td>Research, summarize, compare, and automate web tasks.</td>
+            <td>Chrome becomes a consumer automation shell around the open web.</td>
+          </tr>
+          <tr>
+            <td>Autofill with Personal Intelligence</td>
+            <td>Uses connected app context to complete complex forms.</td>
+            <td>Autofill shifts from static saved fields to contextual data mapping.</td>
+          </tr>
+          <tr>
+            <td>Gboard Rambler</td>
+            <td>Turns messy speech into polished text.</td>
+            <td>The keyboard becomes an ambient intelligent editor.</td>
+          </tr>
+          <tr>
+            <td>Magic Cue style surfaces</td>
+            <td>Generate contextual replies and actions.</td>
+            <td>Cross-app personal context becomes a one-tap action surface.</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section id="generative-ui">
+      <h2>Generative UI Deep Dive</h2>
+      <p class="lead">Create My Widget is the most direct generative UI announcement. Users describe a widget in natural language, and Gemini builds a functional, resizable home-screen widget. Google also says the idea applies to Wear OS Tiles.</p>
+      <div class="grid">
+        <article class="card">
+          <span class="tag green">Definition</span>
+          <h3>Not just theme generation</h3>
+          <p>Ordinary customization changes layout, theme, or a data source inside predefined options. Generative UI creates a new information surface from a natural-language goal.</p>
+        </article>
+        <article class="card">
+          <span class="tag amber">Examples</span>
+          <h3>Recurring personal jobs</h3>
+          <p>Google examples include weekly high-protein meal prep suggestions and a cyclist-specific weather widget that only shows wind speed and rain.</p>
+        </article>
+      </div>
+      <h3>Likely architecture requirements</h3>
+      <ul>
+        <li><strong>Data connectors:</strong> Google apps, web content, app-provided structured data, user preferences, and possibly system APIs.</li>
+        <li><strong>Constraint system:</strong> fixed size classes, glanceable content, battery and network limits, privacy rules, and accessibility semantics.</li>
+        <li><strong>Action model:</strong> open a source app, refresh data, start an assistant task, or confirm/reject a recommendation.</li>
+        <li><strong>Verification loop:</strong> preview, edit, explain, and reset generated UI because errors can be semantic or interaction-level.</li>
+      </ul>
+      <h3>Generative UI versus agentic UI</h3>
+      <p>Generative UI creates or adapts the interface. Agentic UI performs actions through or behind the interface. Gemini Intelligence combines both: generated widgets for recurring context, app automation for one-off tasks, and confirmation gates for consequential steps.</p>
+    </section>
+
+    <section id="android17">
+      <h2>Android 17 Platform Updates</h2>
+      <div class="grid">
+        <article class="card">
+          <span class="tag blue">Creators</span>
+          <h3>Capture and editing</h3>
+          <ul>
+            <li>Screen Reactions for recording yourself and your screen.</li>
+            <li>Instagram tablet optimization, Ultra HDR, stabilization, Night Sight, and sharper capture-to-upload flow.</li>
+            <li>Instagram Edits Smart Enhance and Sound Separation.</li>
+            <li>Adobe Premiere app for Android expected in summer.</li>
+          </ul>
+        </article>
+        <article class="card">
+          <span class="tag green">Sharing</span>
+          <h3>Cross-platform movement</h3>
+          <ul>
+            <li>Quick Share compatibility with AirDrop-style flows for major Android OEMs.</li>
+            <li>QR-code cloud sharing from Android to iOS.</li>
+            <li>Quick Share expansion into apps such as WhatsApp.</li>
+            <li>Wireless iOS-to-Android migration for passwords, photos, messages, apps, contacts, home screen layout, and eSIM.</li>
+          </ul>
+        </article>
+        <article class="card">
+          <span class="tag amber">Wellbeing</span>
+          <h3>Pause Point and Noto 3D</h3>
+          <p>Pause Point adds a 10-second intentionality pause before opening selected distracting apps. Noto 3D redesigns Android emoji with a more dimensional style.</p>
+        </article>
+        <article class="card">
+          <span class="tag violet">Security</span>
+          <h3>Automation needs guardrails</h3>
+          <p>Verified Financial Calls, Live Threat Detection improvements, Chrome sideload protection, stronger failed-login handling, granular location, and targeted contact access all matter more as AI automation expands.</p>
+        </article>
+      </div>
+    </section>
+
+    <section id="auto-googlebook">
+      <h2>Android Auto, Googlebook, XR</h2>
+      <h3>Android Auto</h3>
+      <p>Android Auto gets a Material 3 Expressive redesign, broader media/navigation upgrades, widgets, immersive Google Maps navigation, parked full HD 60 FPS video, spatial audio, and later Gemini Intelligence features such as Magic Cue replies and voice-driven app automation.</p>
+      <h3>Googlebook</h3>
+      <p>Googlebook is presented as a new laptop category designed around Gemini Intelligence. Reported features include tight Android phone integration, Cast my apps-style mobile access, Quick Access file browsing for phone files, Create My Widget on desktop, Magic Pointer, and partner devices from Acer, Asus, Dell, HP, and Lenovo.</p>
+      <h3>Android XR and glasses</h3>
+      <p>Google's framing mentions glasses around I/O and describes Gemini Intelligence expanding to glasses later in 2026. On glasses, screen context becomes environment context, which makes the common Gemini Intelligence layer strategically important.</p>
+    </section>
+
+    <section id="developer">
+      <h2>Developer Implications</h2>
+      <ol>
+        <li><strong>App workflows need to be agent-readable.</strong> Clear states, stable accessibility semantics, predictable navigation, and clean confirmation steps will matter more.</li>
+        <li><strong>UI surfaces become generation targets.</strong> Widgets and Wear OS Tiles may become user-generated micro-surfaces fed by structured app data and actions.</li>
+        <li><strong>Privacy UX becomes AI UX.</strong> Users need to know what assistant is active, what app/data it used, and where final confirmation happens.</li>
+        <li><strong>Material 3 Expressive becomes the AI-aware Android visual language.</strong> Gemini Intelligence UI builds on purposeful animation, focus, and progressive disclosure.</li>
+        <li><strong>Multi-device continuity becomes a product requirement.</strong> Phones, watches, cars, glasses, and laptops are being tied together by a common assistant layer.</li>
+      </ol>
+      <div class="callout">
+        For Android teams, the practical question becomes: can an assistant understand and safely operate this workflow?
+      </div>
+    </section>
+
+    <section id="risks">
+      <h2>Risks and Open Questions</h2>
+      <ul>
+        <li><strong>Shipping risk:</strong> many features are scheduled for summer or later 2026 and may vary by device, country, language, or partner.</li>
+        <li><strong>Automation reliability:</strong> cross-app tasks are fragile unless apps expose stable UI semantics or structured action APIs.</li>
+        <li><strong>Prompt injection:</strong> Chrome and app automation create a larger attack surface when web or app content can influence actions.</li>
+        <li><strong>Privacy clarity:</strong> opt-in controls are necessary but users also need understandable activity logs.</li>
+        <li><strong>Generative widget APIs:</strong> it is still unclear how third-party apps will expose data and actions to generated widgets or Wear OS Tiles.</li>
+      </ul>
+    </section>
+
+    <section id="sources">
+      <h2>Sources and Confidence Notes</h2>
+      <h3>Primary sources</h3>
+      <ul class="source-list">
+        <li><a href="https://blog.google/products-and-platforms/platforms/android/android-show-io-edition-2026/">Google Keyword: The Android Show: I/O Edition 2026</a></li>
+        <li><a href="https://www.android.com/new-features-on-android/io-2026/">Android product page: What's new for Android</a></li>
+        <li><a href="https://blog.google/products-and-platforms/platforms/android/gemini-intelligence/">Google Keyword: A smarter, more proactive Android with Gemini Intelligence</a></li>
+      </ul>
+      <h3>Secondary sources</h3>
+      <ul class="source-list">
+        <li><a href="https://9to5google.com/2026/05/12/the-android-show-2026/">9to5Google: Everything announced at The Android Show</a></li>
+        <li><a href="https://www.digitaltrends.com/computing/the-android-show-2026-gemini-intelligence-googlebook-android-17-updates-and-everything-else-that-was-announced/">Digital Trends: The Android Show 2026</a></li>
+        <li><a href="https://www.engadget.com/2171038/everything-announced-at-android-show-google-io-2026/">Engadget: Everything Announced At The Android Show</a></li>
+      </ul>
+      <p><strong>High confidence:</strong> Gemini Intelligence concept, multi-step app automation, screen/image context, Gemini in Chrome, Autofill, Rambler, Create My Widget, Material 3 Expressive-based AI UI, and rollout direction.</p>
+      <p><strong>Medium-high confidence:</strong> detailed Android 17, Android Auto, Googlebook, Magic Pointer, partner lists, and rollout timing. These are consistently reported but should be checked against official developer docs before implementation decisions.</p>
+    </section>
+
+    <p class="footer">Generated as a static companion to the Markdown research notes in this topic home.</p>
+  </main>
+</body>
+</html>
