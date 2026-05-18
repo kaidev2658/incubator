@@ -24,6 +24,9 @@ Research and planning material for evaluating agent runtimes, benchmark selectio
 ### `agentic-app-platform-analysis/`
 Research material focused on agentic application platform analysis.
 
+### `android-show-io-2026/`
+Research notes summarizing The Android Show: I/O Edition 2026, with a deeper analysis of Gemini Intelligence and generative UI.
+
 ### `dotnet-assembly-inspector/`
 Topic home for the .NET assembly inspector work, including skill, status, and planning documents.
 
