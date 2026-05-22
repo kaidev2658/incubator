@@ -180,6 +180,7 @@ def main() -> None:
         "window_hours": args.window_hours,
         "feeds": feeds,
         "entries": records,
+        "items": records,
     }
     output_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2))
 
