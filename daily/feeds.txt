@@ -1,2 +1,5 @@
 # 추가 피드 URL을 한 줄에 하나씩 입력하세요.
 # Example: https://news.ycombinator.com/rss
+https://feeds.feedburner.com/geeknews-feed
+https://news.ycombinator.com/rss
+https://github.blog/changelog/feed/
