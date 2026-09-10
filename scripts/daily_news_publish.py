@@ -15,6 +15,7 @@ from zoneinfo import ZoneInfo
 
 ROOT = Path(__file__).resolve().parents[1]
 FETCH_SCRIPT = ROOT / "scripts" / "daily_news_fetch.py"
+FEEDS_FILE = ROOT / "daily" / "feeds.txt"
 KST = ZoneInfo("Asia/Seoul")
 
 
@@ -140,16 +141,17 @@ def main() -> int:
     json_path = Path(args.input_json or f"/tmp/daily_news_{date}.json")
 
     if not args.skip_fetch and not args.input_json:
-        run(
-            [
-                sys.executable,
-                str(FETCH_SCRIPT),
-                "--output",
-                str(json_path),
-                "--window-hours",
-                str(args.window_hours),
-            ]
-        )
+        fetch_cmd = [
+            sys.executable,
+            str(FETCH_SCRIPT),
+            "--output",
+            str(json_path),
+            "--window-hours",
+            str(args.window_hours),
+        ]
+        if FEEDS_FILE.exists():
+            fetch_cmd.extend(["--feeds-file", str(FEEDS_FILE)])
+        run(fetch_cmd)
 
     payload = json.loads(json_path.read_text())
     entries = payload.get("entries") or payload.get("items") or []

@@ -14,7 +14,7 @@ from pathlib import Path
 from typing import Iterable, List, Optional, Sequence
 
 DEFAULT_FEEDS: List[str] = [
-    "https://feeds.feedburner.com/geeknews-feed",
+    "https://news.hada.io/rss/news",
 ]
 
 HEADERS = {
@@ -58,7 +58,14 @@ def load_feeds(feeds_file: Optional[str]) -> List[str]:
                 feeds.append(candidate)
         else:
             log(f"Feeds file not found: {path}")
-    return feeds
+    unique_feeds: List[str] = []
+    seen = set()
+    for feed in feeds:
+        if feed in seen:
+            continue
+        unique_feeds.append(feed)
+        seen.add(feed)
+    return unique_feeds
 
 
 def fetch_feed(url: str) -> Optional[bytes]:
@@ -155,6 +162,7 @@ def main() -> None:
     now_utc = datetime.now(timezone.utc)
     cutoff = now_utc - timedelta(hours=args.window_hours)
     records: List[dict] = []
+    seen_links = set()
 
     for lookup in feeds:
         payload = fetch_feed(lookup)
@@ -169,7 +177,11 @@ def main() -> None:
             entry_time = datetime.fromisoformat(entry["published"])
             if entry_time < cutoff:
                 continue
+            link = entry["link"]
+            if link in seen_links:
+                continue
             records.append(entry)
+            seen_links.add(link)
 
     records = sorted(records, key=lambda r: r["published"], reverse=True)
 
