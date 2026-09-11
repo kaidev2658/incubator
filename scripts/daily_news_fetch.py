@@ -162,17 +162,31 @@ def main() -> None:
     now_utc = datetime.now(timezone.utc)
     cutoff = now_utc - timedelta(hours=args.window_hours)
     records: List[dict] = []
+    source_stats: List[dict] = []
     seen_links = set()
 
     for lookup in feeds:
+        stats = {
+            "feed": lookup,
+            "bytes": 0,
+            "parsed": 0,
+            "kept": 0,
+            "error": None,
+        }
         payload = fetch_feed(lookup)
         if not payload:
+            stats["error"] = "empty-or-fetch-failed"
+            source_stats.append(stats)
             continue
+        stats["bytes"] = len(payload)
         try:
             entries = list(parse_entries(payload, lookup))
         except Exception as exc:  # pragma: no cover
+            stats["error"] = f"parse-failed: {exc}"
+            source_stats.append(stats)
             log(f"Failed to parse {lookup}: {exc}")
             continue
+        stats["parsed"] = len(entries)
         for entry in entries:
             entry_time = datetime.fromisoformat(entry["published"])
             if entry_time < cutoff:
@@ -182,6 +196,8 @@ def main() -> None:
                 continue
             records.append(entry)
             seen_links.add(link)
+            stats["kept"] += 1
+        source_stats.append(stats)
 
     records = sorted(records, key=lambda r: r["published"], reverse=True)
 
@@ -191,12 +207,21 @@ def main() -> None:
         "generated_at": now_utc.isoformat(),
         "window_hours": args.window_hours,
         "feeds": feeds,
+        "source_stats": source_stats,
         "entries": records,
         "items": records,
     }
     output_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2))
 
     log(f"Wrote {len(records)} entries to {output_path}")
+    for stats in source_stats:
+        detail = (
+            f"feed={stats['feed']} bytes={stats['bytes']} "
+            f"parsed={stats['parsed']} kept={stats['kept']}"
+        )
+        if stats["error"]:
+            detail += f" error={stats['error']}"
+        log(detail)
 
 
 if __name__ == "__main__":

@@ -9,6 +9,7 @@ import json
 import re
 import subprocess
 import sys
+import time
 from datetime import datetime, timezone
 from pathlib import Path
 from zoneinfo import ZoneInfo
@@ -129,9 +130,42 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--input-json", help="Use an existing fetched JSON file.")
     parser.add_argument("--skip-fetch", action="store_true", help="Do not fetch before publishing.")
     parser.add_argument("--window-hours", type=int, default=24)
+    parser.add_argument("--fallback-window-hours", type=int, default=48)
+    parser.add_argument("--retries", type=int, default=2)
+    parser.add_argument("--retry-delay-seconds", type=int, default=20)
     parser.add_argument("--commit", action="store_true")
     parser.add_argument("--push", action="store_true")
     return parser.parse_args()
+
+
+def fetch_entries(json_path: Path, window_hours: int) -> tuple[dict, subprocess.CompletedProcess[str]]:
+    fetch_cmd = [
+        sys.executable,
+        str(FETCH_SCRIPT),
+        "--output",
+        str(json_path),
+        "--window-hours",
+        str(window_hours),
+    ]
+    if FEEDS_FILE.exists():
+        fetch_cmd.extend(["--feeds-file", str(FEEDS_FILE)])
+    result = run(fetch_cmd)
+    payload = json.loads(json_path.read_text())
+    return payload, result
+
+
+def payload_entries(payload: dict) -> list[dict]:
+    return payload.get("entries") or payload.get("items") or []
+
+
+def print_fetch_diagnostics(payload: dict, *, prefix: str = "diagnostic") -> None:
+    stats = payload.get("source_stats") or []
+    print(f"{prefix}: window_hours={payload.get('window_hours')} feeds={len(payload.get('feeds') or [])}")
+    for item in stats:
+        print(
+            f"{prefix}: feed={item.get('feed')} bytes={item.get('bytes')} "
+            f"parsed={item.get('parsed')} kept={item.get('kept')} error={item.get('error')}"
+        )
 
 
 def main() -> int:
@@ -140,24 +174,33 @@ def main() -> int:
     date = args.date or now.strftime("%Y-%m-%d")
     json_path = Path(args.input_json or f"/tmp/daily_news_{date}.json")
 
-    if not args.skip_fetch and not args.input_json:
-        fetch_cmd = [
-            sys.executable,
-            str(FETCH_SCRIPT),
-            "--output",
-            str(json_path),
-            "--window-hours",
-            str(args.window_hours),
-        ]
-        if FEEDS_FILE.exists():
-            fetch_cmd.extend(["--feeds-file", str(FEEDS_FILE)])
-        run(fetch_cmd)
+    fetch_attempts = []
+    if args.skip_fetch or args.input_json:
+        payload = json.loads(json_path.read_text())
+    else:
+        max_attempts = max(1, args.retries + 1)
+        payload = {}
+        for attempt in range(1, max_attempts + 1):
+            payload, result = fetch_entries(json_path, args.window_hours)
+            fetch_attempts.append((args.window_hours, payload, result))
+            if payload_entries(payload):
+                break
+            if attempt < max_attempts:
+                time.sleep(max(0, args.retry_delay_seconds))
+        if not payload_entries(payload) and args.fallback_window_hours > args.window_hours:
+            payload, result = fetch_entries(json_path, args.fallback_window_hours)
+            fetch_attempts.append((args.fallback_window_hours, payload, result))
 
-    payload = json.loads(json_path.read_text())
-    entries = payload.get("entries") or payload.get("items") or []
+    entries = payload_entries(payload)
     if not entries:
+        for _, attempt_payload, result in fetch_attempts:
+            if result.stderr.strip():
+                print(result.stderr.strip())
+            print_fetch_diagnostics(attempt_payload)
         print(f"status: failure\nfile: none\nitems: 0\ncommit: none\npush: skipped\nreason: no entries")
         return 1
+    if fetch_attempts and fetch_attempts[-1][0] != args.window_hours:
+        print(f"notice: used fallback window_hours={fetch_attempts[-1][0]}")
 
     generated_at = now.strftime("%Y-%m-%d %H:%M KST")
     target = ROOT / "daily" / date[:7] / f"AgentK_Daily_Insight_{date}.md"
