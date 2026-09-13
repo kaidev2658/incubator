@@ -29,8 +29,22 @@ def default_ssl_context() -> ssl.SSLContext:
     try:
         import certifi
     except ImportError:
-        return ssl.create_default_context()
-    return ssl.create_default_context(cafile=certifi.where())
+        certifi = None
+    if certifi is not None:
+        return ssl.create_default_context(cafile=certifi.where())
+
+    default_paths = ssl.get_default_verify_paths()
+    candidate_cafiles = [
+        default_paths.cafile,
+        default_paths.openssl_cafile,
+        "/private/etc/ssl/cert.pem",
+        "/etc/ssl/cert.pem",
+    ]
+    for cafile in candidate_cafiles:
+        if cafile and Path(cafile).exists():
+            return ssl.create_default_context(cafile=cafile)
+
+    return ssl.create_default_context()
 
 
 def log(msg: str) -> None:
