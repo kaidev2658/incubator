@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import ssl
 import sys
 import urllib.request
 import xml.etree.ElementTree as ET
@@ -22,6 +23,14 @@ HEADERS = {
 }
 
 IGNORED_PREFIXES = ("Show GN:", "Ask GN:")
+
+
+def default_ssl_context() -> ssl.SSLContext:
+    try:
+        import certifi
+    except ImportError:
+        return ssl.create_default_context()
+    return ssl.create_default_context(cafile=certifi.where())
 
 
 def log(msg: str) -> None:
@@ -71,7 +80,7 @@ def load_feeds(feeds_file: Optional[str]) -> List[str]:
 def fetch_feed(url: str) -> Optional[bytes]:
     request = urllib.request.Request(url, headers=HEADERS)
     try:
-        with urllib.request.urlopen(request, timeout=20) as resp:
+        with urllib.request.urlopen(request, timeout=20, context=default_ssl_context()) as resp:
             return resp.read()
     except Exception as exc:  # pragma: no cover (retry log)
         log(f"Failed to retrieve {url}: {exc}")
