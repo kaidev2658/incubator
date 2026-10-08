@@ -33,6 +33,9 @@ Topic home for the .NET assembly inspector work, including skill, status, and pl
 ### `galaxy-s26-ai/`
 Research documents related to Galaxy S26 AI and intelligent OS positioning.
 
+### `gsap-animation-engine-analysis/`
+Technical analysis of GSAP as an animation engine, including architecture, runtime concepts, native implementation feasibility, and PoC design notes.
+
 ### `kmp-cmp-poc/`
 Kotlin Multiplatform / Compose Multiplatform proof-of-concept workspace, including planning, architecture, implementation spikes, and status tracking.
 
