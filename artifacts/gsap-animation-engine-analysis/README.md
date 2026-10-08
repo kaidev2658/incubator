@@ -1,5 +1,7 @@
 # GSAP Animation Engine Analysis
 
+Languages: [English](README.md) | [한국어](README.ko.md)
+
 This topic home contains a technical study of GSAP as a web animation engine, with an emphasis on architecture, runtime behavior, implementation concepts, and feasibility of carrying similar ideas into native C/C++ UI environments such as Tizen.
 
 ## Executive Summary
@@ -34,6 +36,15 @@ In Tizen terms:
 - [poc-design.md](poc-design.md): proposed small animation engine PoC design.
 - [references.md](references.md): official sources and reference links.
 
+Korean versions:
+
+- [README.ko.md](README.ko.md): Korean overview.
+- [gsap-technical-report.ko.md](gsap-technical-report.ko.md): Korean main technical report.
+- [architecture-notes.ko.md](architecture-notes.ko.md): Korean architecture notes.
+- [native-implementation-feasibility.ko.md](native-implementation-feasibility.ko.md): Korean native implementation feasibility report.
+- [poc-design.ko.md](poc-design.ko.md): Korean PoC design.
+- [references.ko.md](references.ko.md): Korean reference index.
+
 ## Recommended Folder Name
 
 Chosen topic-home:
@@ -47,4 +58,3 @@ Reasoning:
 - It captures the real subject: GSAP as an animation engine, not just a library overview.
 - It leaves room for both web-side analysis and native implementation mapping.
 - It is neutral and suitable for a public technical artifact.
-
