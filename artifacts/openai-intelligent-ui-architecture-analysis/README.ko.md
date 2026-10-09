@@ -24,6 +24,7 @@ X 분석 포스트는 이를 더 낮은 수준에서 분해한다. 해당 분석
 - [native-implementation-feasibility.ko.md](native-implementation-feasibility.ko.md): Tizen C/C++ 또는 native UI 환경에서 유사 구조를 구현할 수 있는지 검토.
 - [strategy-and-implications.ko.md](strategy-and-implications.ko.md): AI OS, 앱 플랫폼, generative UI 관점의 전략적 의미.
 - [poc-design.ko.md](poc-design.ko.md): 최소 Intelligent UI runtime PoC 설계안.
+- [q-and-a.ko.md](q-and-a.ko.md): Intelligent UI, A2UI, JSON Render, template boundary에 대한 후속 Q&A.
 - [references.ko.md](references.ko.md): 공식 자료, 관찰 기반 분석, 보조 기술 참고 링크.
 
 ## 폴더명
@@ -46,4 +47,3 @@ artifacts/openai-intelligent-ui-architecture-analysis/
 - `artifacts/a2ui-analysis/`: A2UI, renderer, protocol, Tizen runtime 관련 기존 분석과 구현 작업.
 - `artifacts/gsap-animation-engine-analysis/`: UI property runtime, timeline, renderer abstraction 관점에서 비교 가능한 애니메이션 엔진 분석.
 - `artifacts/tizen-ai-os-prd/`: Tizen AI OS 관점의 제품/아키텍처 문맥.
-
