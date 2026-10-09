@@ -36,6 +36,9 @@ Research documents related to Galaxy S26 AI and intelligent OS positioning.
 ### `gsap-animation-engine-analysis/`
 Technical analysis of GSAP as an animation engine, including architecture, runtime concepts, native implementation feasibility, and PoC design notes.
 
+### `openai-intelligent-ui-architecture-analysis/`
+Technical analysis of OpenAI Intelligent UI, including architecture, DIL/runtime observations, security boundaries, native implementation feasibility, and PoC design notes.
+
 ### `kmp-cmp-poc/`
 Kotlin Multiplatform / Compose Multiplatform proof-of-concept workspace, including planning, architecture, implementation spikes, and status tracking.
 
