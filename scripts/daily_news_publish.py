@@ -10,6 +10,7 @@ import re
 import subprocess
 import sys
 import time
+import urllib.request
 from datetime import datetime, timezone
 from pathlib import Path
 from zoneinfo import ZoneInfo
@@ -18,6 +19,9 @@ ROOT = Path(__file__).resolve().parents[1]
 FETCH_SCRIPT = ROOT / "scripts" / "daily_news_fetch.py"
 FEEDS_FILE = ROOT / "daily" / "feeds.txt"
 KST = ZoneInfo("Asia/Seoul")
+HEADERS = {
+    "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/120 Safari/537.36",
+}
 
 
 def run(cmd: list[str], *, check: bool = True) -> subprocess.CompletedProcess[str]:
@@ -67,8 +71,46 @@ def insight_for(entry: dict) -> str:
     return "단일 기사보다 같은 방향의 신호가 반복되는지 추적하면 기술 채택 시점과 리스크를 더 잘 판단할 수 있습니다."
 
 
+def fetch_engagement(entry: dict) -> dict:
+    link = (entry.get("link") or "").strip()
+    topic_match = re.search(r"^https://news\.hada\.io/topic\?id=(\d+)", link)
+    if not topic_match:
+        return {}
+
+    topic_id = topic_match.group(1)
+    request = urllib.request.Request(link, headers=HEADERS)
+    try:
+        with urllib.request.urlopen(request, timeout=8) as response:
+            page = response.read().decode("utf-8", errors="replace")
+    except Exception:
+        return {}
+
+    points_match = re.search(rf"id=['\"]tp{re.escape(topic_id)}['\"]>(\d+)</span>\s*P", page)
+    comments_match = re.search(r"data-topic-comment-count=['\"](\d+)['\"]", page)
+    engagement = {}
+    if points_match:
+        engagement["points"] = int(points_match.group(1))
+    if comments_match:
+        engagement["comments"] = int(comments_match.group(1))
+    return engagement
+
+
+def enrich_engagement(entries: list[dict]) -> list[dict]:
+    enriched = []
+    for entry in entries:
+        copy = dict(entry)
+        copy.update(fetch_engagement(entry))
+        enriched.append(copy)
+    return enriched
+
+
 def impact_score(entry: dict, index: int) -> int:
     haystack = f"{entry.get('title', '')} {entry.get('summary', '')}".lower()
+    points = entry.get("points")
+    comments = entry.get("comments")
+    if points is not None or comments is not None:
+        return int(points or 0) * 3 + int(comments or 0) * 8
+
     weighted_keywords = [
         (9, ("security", "vulnerability", "hack", "breach", "privacy", "identity", "supply chain")),
         (8, ("ai", "llm", "agent", "claude", "gpt", "model", "compute", "gpu", "nvidia")),
@@ -77,7 +119,7 @@ def impact_score(entry: dict, index: int) -> int:
         (6, ("market", "ipo", "vc", "funding", "revenue", "contract", "price")),
         (5, ("research", "paper", "benchmark", "eval", "clinical", "vaccine")),
     ]
-    score = max(0, 12 - index)
+    score = max(0, 3 - index)
     for weight, keywords in weighted_keywords:
         if any(keyword in haystack for keyword in keywords):
             score += weight
@@ -177,8 +219,17 @@ def print_impact_lines(entries: list[dict]) -> None:
     for idx, entry in enumerate(top_impact_entries(entries), 1):
         title = strip_html(entry.get("title", "")).strip() or f"Item {idx}"
         link = (entry.get("link") or "").strip()
+        points = entry.get("points")
+        comments = entry.get("comments")
+        engagement = []
+        if points is not None:
+            engagement.append(f"points={points}")
+        if comments is not None:
+            engagement.append(f"comments={comments}")
         print(f"impact_{idx}_title: {compact_line(title, 180)}")
         print(f"impact_{idx}_link: {compact_line(link, 220)}")
+        if engagement:
+            print(f"impact_{idx}_engagement: {', '.join(engagement)}")
         print(f"impact_{idx}_summary: {compact_line(short_summary(entry), 300)}")
         print(f"impact_{idx}_insight: {compact_line(insight_for(entry), 260)}")
 
@@ -258,6 +309,7 @@ def main() -> int:
             print_fetch_diagnostics(attempt_payload)
         print(f"status: failure\nfile: none\nitems: 0\ncommit: none\npush: skipped\nreason: no entries")
         return 1
+    entries = enrich_engagement(entries)
     if fetch_attempts and fetch_attempts[-1][0] != args.window_hours:
         print(f"notice: used fallback window_hours={fetch_attempts[-1][0]}")
 
