@@ -67,6 +67,41 @@ def insight_for(entry: dict) -> str:
     return "단일 기사보다 같은 방향의 신호가 반복되는지 추적하면 기술 채택 시점과 리스크를 더 잘 판단할 수 있습니다."
 
 
+def impact_score(entry: dict, index: int) -> int:
+    haystack = f"{entry.get('title', '')} {entry.get('summary', '')}".lower()
+    weighted_keywords = [
+        (9, ("security", "vulnerability", "hack", "breach", "privacy", "identity", "supply chain")),
+        (8, ("ai", "llm", "agent", "claude", "gpt", "model", "compute", "gpu", "nvidia")),
+        (7, ("regulation", "law", "lawsuit", "policy", "ban", "antitrust", "climate")),
+        (7, ("open source", "linux", "kernel", "compiler", "runtime", "sqlite", "database")),
+        (6, ("market", "ipo", "vc", "funding", "revenue", "contract", "price")),
+        (5, ("research", "paper", "benchmark", "eval", "clinical", "vaccine")),
+    ]
+    score = max(0, 12 - index)
+    for weight, keywords in weighted_keywords:
+        if any(keyword in haystack for keyword in keywords):
+            score += weight
+    if re.search(r"\b(\d+[%x]?|\$\d+|[0-9,.]+억|[0-9,.]+조)\b", haystack):
+        score += 2
+    return score
+
+
+def top_impact_entries(entries: list[dict], limit: int = 3) -> list[dict]:
+    ranked = sorted(
+        enumerate(entries),
+        key=lambda pair: (impact_score(pair[1], pair[0]), -pair[0]),
+        reverse=True,
+    )
+    return [entry for _, entry in ranked[:limit]]
+
+
+def compact_line(value: str, limit: int = 260) -> str:
+    text = re.sub(r"\s+", " ", value).strip()
+    if len(text) > limit:
+        return text[: limit - 3].rstrip() + "..."
+    return text
+
+
 def theme_line(entries: list[dict]) -> str:
     text = " ".join(f"{e.get('title', '')} {e.get('summary', '')}" for e in entries).lower()
     themes = []
@@ -94,7 +129,21 @@ def build_markdown(entries: list[dict], date: str, generated_at: str) -> str:
         "## 오늘의 한 줄",
         "도구와 인프라는 더 강력해지고 있지만, 실제 경쟁력은 이를 어떤 검증 루프와 운영 경계 안에 넣느냐에서 갈립니다.",
         "",
+        "## 임팩트 Top 3",
     ]
+    for idx, entry in enumerate(top_impact_entries(entries), 1):
+        title = strip_html(entry.get("title", "")).strip() or f"Item {idx}"
+        link = entry.get("link", "").strip()
+        lines.extend(
+            [
+                f"### {idx}. {title}",
+                f"- 링크: {link}",
+                f"- 내용: {short_summary(entry)}",
+                f"- 인사이트: {insight_for(entry)}",
+                "",
+            ]
+        )
+    lines.append("")
     for idx, entry in enumerate(entries, 1):
         title = strip_html(entry.get("title", "")).strip() or f"Item {idx}"
         link = entry.get("link", "").strip()
@@ -122,6 +171,16 @@ def build_markdown(entries: list[dict], date: str, generated_at: str) -> str:
         ]
     )
     return "\n".join(lines)
+
+
+def print_impact_lines(entries: list[dict]) -> None:
+    for idx, entry in enumerate(top_impact_entries(entries), 1):
+        title = strip_html(entry.get("title", "")).strip() or f"Item {idx}"
+        link = (entry.get("link") or "").strip()
+        print(f"impact_{idx}_title: {compact_line(title, 180)}")
+        print(f"impact_{idx}_link: {compact_line(link, 220)}")
+        print(f"impact_{idx}_summary: {compact_line(short_summary(entry), 300)}")
+        print(f"impact_{idx}_insight: {compact_line(insight_for(entry), 260)}")
 
 
 def parse_args() -> argparse.Namespace:
@@ -228,6 +287,7 @@ def main() -> int:
     print(f"push: {push_status}")
     print("reason: none")
     print(f"summary: Daily Insight {date} generated from fetched RSS entries.")
+    print_impact_lines(entries)
     return 0
 
 
