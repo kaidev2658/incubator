@@ -15,6 +15,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
+from daily_news_analyze import DEFAULT_MODEL, analysis_by_id, analyze_entries
+
 ROOT = Path(__file__).resolve().parents[1]
 FETCH_SCRIPT = ROOT / "scripts" / "daily_news_fetch.py"
 FEEDS_FILE = ROOT / "daily" / "feeds.txt"
@@ -52,23 +54,6 @@ def short_summary(entry: dict) -> str:
             text = text[:227].rstrip() + "..."
         return text
     return f"{title}에 관한 소식입니다. 원문을 기준으로 세부 맥락을 확인할 필요가 있습니다."
-
-
-def insight_for(entry: dict) -> str:
-    haystack = f"{entry.get('title', '')} {entry.get('summary', '')}".lower()
-    rules = [
-        (("ai", "llm", "claude", "chatbot", "agent"), "AI 도구는 결과물보다 워크플로와 검증 경계가 더 중요해지는 방향으로 이동하고 있습니다."),
-        (("typescript", "c++", "c ", "python", "llvm", "jit", "compiler"), "언어와 런타임 계층의 변화는 개발 생산성뿐 아니라 배포 비용과 운영 복잡도에 직접 영향을 줍니다."),
-        (("security", "hack", "privacy", "identity", "digid", "grapheneos"), "보안 이슈는 기능 문제가 아니라 신뢰 경계와 권한 설계의 문제로 보는 편이 안전합니다."),
-        (("gpu", "nvidia", "data center", "spacex", "cuda"), "AI 인프라 경쟁은 모델 성능만큼 컴퓨트 조달, 메모리 구조, 전력·자본 계획에 좌우됩니다."),
-        (("kernel", "ebpf", "server", "terminal", "sqlite", "kvm"), "저수준 시스템 도구의 작은 성능·운영성 개선은 반복 업무가 많은 팀에서 큰 누적 효과를 만듭니다."),
-        (("figma", "design", "demo", "taste"), "제품 제작에서는 산출물의 양보다 좋은 판단, 빠른 프로토타입, 명확한 데모가 차별점이 되고 있습니다."),
-        (("market", "vc", "s&p", "ipo"), "기술 기업의 가치는 제품 서사와 별도로 자본시장 규칙, 유동성, 거버넌스에 의해 조정됩니다."),
-    ]
-    for needles, sentence in rules:
-        if any(needle in haystack for needle in needles):
-            return sentence
-    return "단일 기사보다 같은 방향의 신호가 반복되는지 추적하면 기술 채택 시점과 리스크를 더 잘 판단할 수 있습니다."
 
 
 def fetch_engagement(entry: dict) -> dict:
@@ -160,28 +145,42 @@ def theme_line(entries: list[dict]) -> str:
     return ", ".join(themes[:4])
 
 
-def build_markdown(entries: list[dict], date: str, generated_at: str) -> str:
+def build_markdown(
+    entries: list[dict], date: str, generated_at: str, analysis: dict
+) -> str:
+    analyzed = analysis_by_id(analysis)
+    daily = analysis.get("daily") or {}
+    observation_points = daily.get("observation_points") or [theme_line(entries)]
+    one_line = strip_html(str(daily.get("one_line") or "기사별 분석 결과를 확인할 필요가 있습니다."))
+    raw_status = analysis.get("meta", {}).get("status", "unknown")
+    report_status = "LLM 검증 완료" if raw_status in {"generated", "cached"} else "분석 제한"
     lines = [
         f"# Daily Insight - {date}",
         "",
         f"- 생성 시각: {generated_at}",
         f"- 수집 항목 수: {len(entries)}",
-        f"- 관찰 포인트: {theme_line(entries)} 흐름이 함께 관찰됩니다.",
+        f"- 분석 상태: {report_status}",
+        "- 관찰 포인트:",
+    ]
+    lines.extend(f"  - {strip_html(str(item))}" for item in observation_points)
+    lines.extend([
         "",
         "## 오늘의 한 줄",
-        "도구와 인프라는 더 강력해지고 있지만, 실제 경쟁력은 이를 어떤 검증 루프와 운영 경계 안에 넣느냐에서 갈립니다.",
+        one_line,
         "",
         "## 임팩트 Top 3",
-    ]
+    ])
     for idx, entry in enumerate(top_impact_entries(entries), 1):
         title = strip_html(entry.get("title", "")).strip() or f"Item {idx}"
         link = entry.get("link", "").strip()
+        item = analyzed.get(entry.get("_analysis_id"), {})
         lines.extend(
             [
                 f"### {idx}. {title}",
                 f"- 링크: {link}",
-                f"- 내용: {short_summary(entry)}",
-                f"- 인사이트: {insight_for(entry)}",
+                f"- 내용: {item.get('summary') or short_summary(entry)}",
+                f"- 인사이트: {item.get('insight') or '기사별 분석 결과가 없습니다.'}",
+                f"- 영향 영역/신뢰도: {item.get('area', '기타')} / {item.get('confidence', 'low')}",
                 "",
             ]
         )
@@ -189,33 +188,31 @@ def build_markdown(entries: list[dict], date: str, generated_at: str) -> str:
     for idx, entry in enumerate(entries, 1):
         title = strip_html(entry.get("title", "")).strip() or f"Item {idx}"
         link = entry.get("link", "").strip()
+        item = analyzed.get(entry.get("_analysis_id"), {})
         lines.extend(
             [
                 f"## {idx}. {title}",
                 f"- 링크: {link}",
                 "",
                 "[핵심 요약]",
-                short_summary(entry),
+                item.get("summary") or short_summary(entry),
                 "",
                 "[기술적 인사이트]",
-                insight_for(entry),
+                item.get("insight") or "기사별 분석 결과가 없습니다.",
+                "",
+                f"[영향 영역/신뢰도] {item.get('area', '기타')} / {item.get('confidence', 'low')}",
                 "",
             ]
         )
-    lines.extend(
-        [
-            "## 종합 메모",
-            "- AI와 개발 도구는 생산성 논쟁을 넘어 검증·권한·평가 체계의 문제로 확장되고 있습니다.",
-            "- 시스템 성능과 로컬 제어, 저수준 인프라 개선은 반복 작업의 누적 비용을 줄이는 방향으로 중요해지고 있습니다.",
-            "- 보안·프라이버시·디지털 주권 이슈는 기술 선택의 주변 조건이 아니라 핵심 설계 변수로 올라오고 있습니다.",
-            "- 시장과 인프라 소식은 기술 로드맵이 자본, 전력, 공급망과 분리될 수 없다는 점을 다시 보여줍니다.",
-            "",
-        ]
-    )
+    lines.append("## 종합 메모")
+    for item in daily.get("synthesis") or ["검증된 종합 분석 결과가 없습니다."]:
+        lines.append(f"- {strip_html(str(item))}")
+    lines.append("")
     return "\n".join(lines)
 
 
-def print_impact_lines(entries: list[dict]) -> None:
+def print_impact_lines(entries: list[dict], analysis: dict) -> None:
+    analyzed = analysis_by_id(analysis)
     for idx, entry in enumerate(top_impact_entries(entries), 1):
         title = strip_html(entry.get("title", "")).strip() or f"Item {idx}"
         link = (entry.get("link") or "").strip()
@@ -230,8 +227,13 @@ def print_impact_lines(entries: list[dict]) -> None:
         print(f"impact_{idx}_link: {compact_line(link, 220)}")
         if engagement:
             print(f"impact_{idx}_engagement: {', '.join(engagement)}")
-        print(f"impact_{idx}_summary: {compact_line(short_summary(entry), 300)}")
-        print(f"impact_{idx}_insight: {compact_line(insight_for(entry), 260)}")
+        item = analyzed.get(entry.get("_analysis_id"), {})
+        print(f"impact_{idx}_summary: {compact_line(item.get('summary') or short_summary(entry), 300)}")
+        print(f"impact_{idx}_insight: {compact_line(item.get('insight') or '기사별 분석 결과가 없습니다.', 300)}")
+        print(
+            f"impact_{idx}_analysis: area={item.get('area', '기타')}, "
+            f"confidence={item.get('confidence', 'low')}"
+        )
 
 
 def parse_args() -> argparse.Namespace:
@@ -243,6 +245,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--fallback-window-hours", type=int, default=48)
     parser.add_argument("--retries", type=int, default=2)
     parser.add_argument("--retry-delay-seconds", type=int, default=20)
+    parser.add_argument("--analysis-model", default=DEFAULT_MODEL)
+    parser.add_argument("--analysis-timeout", type=int, default=300)
+    parser.add_argument("--analysis-retries", type=int, default=1)
+    parser.add_argument("--analysis-cache-dir")
+    parser.add_argument("--refresh-analysis", action="store_true")
+    parser.add_argument("--output", help="Write to an alternate path for dry-run review.")
     parser.add_argument("--commit", action="store_true")
     parser.add_argument("--push", action="store_true")
     return parser.parse_args()
@@ -310,18 +318,39 @@ def main() -> int:
         print(f"status: failure\nfile: none\nitems: 0\ncommit: none\npush: skipped\nreason: no entries")
         return 1
     entries = enrich_engagement(entries)
+    for index, entry in enumerate(entries, 1):
+        entry["_analysis_id"] = f"item-{index:03d}"
     if fetch_attempts and fetch_attempts[-1][0] != args.window_hours:
         print(f"notice: used fallback window_hours={fetch_attempts[-1][0]}")
 
+    analysis = analyze_entries(
+        entries,
+        date=date,
+        model=args.analysis_model,
+        timeout=args.analysis_timeout,
+        cache_dir=Path(args.analysis_cache_dir).expanduser() if args.analysis_cache_dir else None,
+        refresh=args.refresh_analysis,
+        retries=args.analysis_retries,
+    )
+
     generated_at = now.strftime("%Y-%m-%d %H:%M KST")
-    target = ROOT / "daily" / date[:7] / f"AgentK_Daily_Insight_{date}.md"
+    target = (
+        Path(args.output).expanduser()
+        if args.output
+        else ROOT / "daily" / date[:7] / f"AgentK_Daily_Insight_{date}.md"
+    )
     target.parent.mkdir(parents=True, exist_ok=True)
-    target.write_text(build_markdown(entries, date, generated_at), encoding="utf-8")
+    target.write_text(build_markdown(entries, date, generated_at, analysis), encoding="utf-8")
 
     commit_hash = "none"
     push_status = "skipped"
     if args.commit:
-        run(["git", "add", str(target.relative_to(ROOT))])
+        try:
+            relative_target = target.resolve().relative_to(ROOT.resolve())
+        except ValueError:
+            print("status: failure\ncommit: none\npush: skipped\nreason: --commit requires output inside repository")
+            return 2
+        run(["git", "add", str(relative_target)])
         diff = run(["git", "diff", "--cached", "--quiet"], check=False)
         if diff.returncode == 0:
             commit_hash = "unchanged"
@@ -338,8 +367,13 @@ def main() -> int:
     print(f"commit: {commit_hash}")
     print(f"push: {push_status}")
     print("reason: none")
+    print(f"analysis_status: {analysis.get('meta', {}).get('status', 'unknown')}")
+    print(f"analysis_model: {analysis.get('meta', {}).get('model', args.analysis_model)}")
+    print(f"analysis_attempts: {analysis.get('meta', {}).get('attempts', 0)}")
+    if analysis.get("meta", {}).get("reason"):
+        print(f"analysis_reason: {compact_line(analysis['meta']['reason'], 500)}")
     print(f"summary: Daily Insight {date} generated from fetched RSS entries.")
-    print_impact_lines(entries)
+    print_impact_lines(entries, analysis)
     return 0
 
 
