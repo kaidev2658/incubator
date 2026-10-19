@@ -1,4 +1,5 @@
 import json
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -70,6 +71,36 @@ class DailyNewsAnalyzeTests(unittest.TestCase):
         parsed = analyze.parse_gateway_output("migration warning\n" + envelope)
         self.assertEqual(parsed["items"][0]["id"], "item-001")
 
+    def test_parse_gateway_call_output(self):
+        model_text = json.dumps(valid_analysis(), ensure_ascii=False)
+        envelope = json.dumps(
+            {"result": {"payloads": [{"text": model_text}]}}, ensure_ascii=False
+        )
+        parsed = analyze.parse_gateway_output(envelope)
+        self.assertEqual(parsed["items"][1]["id"], "item-002")
+
+    def test_invoke_model_uses_configurable_gateway_timeout(self):
+        model_text = json.dumps(valid_analysis(), ensure_ascii=False)
+        envelope = json.dumps(
+            {
+                "result": {
+                    "payloads": [{"text": model_text}],
+                    "meta": {
+                        "agentMeta": {"provider": "openai", "model": "gpt-5.6-sol"}
+                    },
+                }
+            },
+            ensure_ascii=False,
+        )
+        completed = subprocess.CompletedProcess([], 0, stdout=envelope, stderr="warning")
+        with patch.object(analyze.subprocess, "run", return_value=completed) as run:
+            result = analyze.invoke_model("prompt", "openai/gpt-5.6-sol", 300)
+        command = run.call_args.args[0]
+        self.assertEqual(command[:4], ["openclaw", "gateway", "call", "agent"])
+        self.assertEqual(command[command.index("--timeout") + 1], "300000")
+        self.assertEqual(run.call_args.kwargs["timeout"], 330)
+        self.assertEqual(result["items"][0]["id"], "item-001")
+
     def test_validate_analysis_accepts_specific_unique_items(self):
         errors = analyze.validate_analysis(valid_analysis(), analyze.prepare_entries(source_entries()))
         self.assertEqual(errors, [])
@@ -93,6 +124,24 @@ class DailyNewsAnalyzeTests(unittest.TestCase):
             self.assertEqual(invoke.call_count, 1)
             self.assertEqual(first["meta"]["status"], "generated")
             self.assertEqual(second["meta"]["status"], "cached")
+
+    def test_timeout_stops_retries_and_records_attempt(self):
+        with tempfile.TemporaryDirectory() as directory:
+            with patch.object(
+                analyze,
+                "invoke_model",
+                side_effect=subprocess.TimeoutExpired("openclaw", 330),
+            ) as invoke:
+                result = analyze.analyze_entries(
+                    source_entries(),
+                    date="2026-10-19",
+                    cache_dir=Path(directory),
+                    retries=2,
+                )
+        self.assertEqual(invoke.call_count, 1)
+        self.assertEqual(result["meta"]["status"], "fallback")
+        self.assertEqual(result["meta"]["attempts"], 1)
+        self.assertEqual(len(result["meta"]["retry_errors"]), 1)
 
 
 if __name__ == "__main__":

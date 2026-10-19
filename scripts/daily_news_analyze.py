@@ -9,6 +9,7 @@ import json
 import os
 import re
 import subprocess
+import uuid
 from difflib import SequenceMatcher
 from pathlib import Path
 from typing import Any
@@ -111,25 +112,57 @@ def parse_gateway_output(raw: str) -> dict[str, Any]:
         text = outputs[0].get("text", "") if isinstance(outputs[0], dict) else ""
         text = re.sub(r"^```(?:json)?\s*|\s*```$", "", text.strip(), flags=re.I)
         return _extract_json_object(text)
+    result = envelope.get("result")
+    payloads = result.get("payloads") if isinstance(result, dict) else None
+    if isinstance(payloads, list) and payloads:
+        text = payloads[0].get("text", "") if isinstance(payloads[0], dict) else ""
+        text = re.sub(r"^```(?:json)?\s*|\s*```$", "", text.strip(), flags=re.I)
+        return _extract_json_object(text)
     if "items" in envelope:
         return envelope
     raise ValueError("gateway response did not contain model text")
 
 
+def _gateway_error(raw: str) -> str | None:
+    try:
+        envelope = _extract_json_object(raw)
+    except ValueError:
+        return None
+    error = envelope.get("error")
+    if not isinstance(error, dict):
+        return None
+    message = strip_html(str(error.get("message", "")))
+    code = strip_html(str(error.get("code", "")))
+    if message and code:
+        return f"{code}: {message}"
+    return message or code or None
+
+
 def invoke_model(prompt: str, model: str, timeout: int) -> dict[str, Any]:
+    session_id = f"daily-news-analysis-{uuid.uuid4()}"
+    params = {
+        "agentId": "main",
+        "sessionId": session_id,
+        "sessionKey": f"agent:main:explicit:{session_id}",
+        "message": prompt,
+        "thinking": "low",
+        "modelRun": True,
+        "promptMode": "none",
+        "cleanupBundleMcpOnRunEnd": True,
+        "idempotencyKey": str(uuid.uuid4()),
+    }
+    gateway_timeout_ms = max(1, timeout) * 1000
     command = [
         "openclaw",
-        "infer",
-        "model",
-        "run",
-        "--gateway",
-        "--model",
-        model,
-        "--thinking",
-        "low",
+        "gateway",
+        "call",
+        "agent",
+        "--expect-final",
+        "--timeout",
+        str(gateway_timeout_ms),
         "--json",
-        "--prompt",
-        prompt,
+        "--params",
+        json.dumps(params, ensure_ascii=False, separators=(",", ":")),
     ]
     result = subprocess.run(
         command,
@@ -137,11 +170,24 @@ def invoke_model(prompt: str, model: str, timeout: int) -> dict[str, Any]:
         text=True,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
-        timeout=timeout,
+        timeout=max(1, timeout) + 30,
     )
     if result.returncode != 0:
-        error = strip_html(result.stderr or result.stdout)[-800:]
+        error = _gateway_error(result.stdout)
+        if not error:
+            error = strip_html(result.stderr or result.stdout)[-800:]
         raise RuntimeError(f"model command failed ({result.returncode}): {error}")
+    envelope = _extract_json_object(result.stdout)
+    meta = envelope.get("result", {}).get("meta", {}).get("agentMeta", {})
+    actual_model = "/".join(
+        value for value in (str(meta.get("provider", "")), str(meta.get("model", ""))) if value
+    )
+    if not actual_model:
+        raise RuntimeError("gateway response did not include model metadata")
+    if actual_model != model:
+        raise RuntimeError(
+            f"configured gateway model mismatch: requested {model}, received {actual_model}"
+        )
     return parse_gateway_output(result.stdout)
 
 
@@ -227,7 +273,14 @@ def default_cache_dir() -> Path:
     return state_dir / "cache" / "daily-news-analysis"
 
 
-def fallback_analysis(prepared: list[dict[str, str]], reason: str) -> dict[str, Any]:
+def fallback_analysis(
+    prepared: list[dict[str, str]],
+    reason: str,
+    *,
+    model: str | None = None,
+    attempts: int = 0,
+    retry_errors: list[str] | None = None,
+) -> dict[str, Any]:
     items = []
     for article in prepared:
         content = article["content"] or f"{article['title']} 관련 RSS 본문이 제공되지 않았습니다."
@@ -251,7 +304,13 @@ def fallback_analysis(prepared: list[dict[str, str]], reason: str) -> dict[str, 
                 "검증되지 않은 시사점은 문서에 포함하지 않았습니다.",
             ],
         },
-        "meta": {"status": "fallback", "reason": reason},
+        "meta": {
+            "status": "fallback",
+            "reason": reason,
+            "model": model,
+            "attempts": attempts,
+            "retry_errors": retry_errors or [],
+        },
     }
 
 
@@ -307,8 +366,20 @@ def analyze_entries(
             feedback = [str(exc)]
             last_error = str(exc)
             retry_errors.append(last_error)
+            if (
+                isinstance(exc, subprocess.TimeoutExpired)
+                or "timeout" in last_error.lower()
+                or "timed out" in last_error.lower()
+            ):
+                break
 
-    return fallback_analysis(prepared, last_error)
+    return fallback_analysis(
+        prepared,
+        last_error,
+        model=model,
+        attempts=len(retry_errors),
+        retry_errors=retry_errors,
+    )
 
 
 def analysis_by_id(analysis: dict[str, Any]) -> dict[str, dict[str, Any]]:
